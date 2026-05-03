@@ -3,75 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能切割神器 - By qibulai17</title>
+    <title>朋友圈全能工具箱 - By qibulai17</title>
     <style>
         :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
         .card { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        
+        /* 导航切换按钮 */
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
+        .tab-btn { padding: 10px 20px; border: none; background: #eee; border-radius: 8px; cursor: pointer; color: #666; font-weight: bold; }
+        .tab-btn.active { background: var(--primary); color: white; }
+
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        /* 原有样式保留 */
         h1 { color: #333; margin-bottom: 5px; font-size: 1.4em; }
         .subtitle { color: #888; margin-bottom: 25px; font-size: 0.9em; }
-        
         .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; }
-        
-        .upload-btn { background: var(--primary); color: white; padding: 12px 35px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; transition: 0.3s; }
-        .upload-btn:active { transform: scale(0.95); opacity: 0.9; }
-
-        /* 朋友圈模拟预览区 */
-        .preview-title { margin-top: 30px; font-weight: bold; color: #576b95; font-size: 0.9em; text-align: left; padding-left: 10px; }
-        #grid-container { 
-            display: grid; 
-            gap: 6px; /* 朋友圈经典的图片间隙 */
-            margin-top: 10px; 
-            background: #ededed; /* 朋友圈底色 */
-            padding: 10px;
-            border-radius: 12px;
-            justify-content: center;
-        }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); width: 100%; box-sizing: border-box; }
-        
+        .upload-btn { background: var(--primary); color: white; padding: 12px 35px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; }
+        #grid-container { display: grid; gap: 6px; margin-top: 10px; background: #ededed; padding: 10px; border-radius: 12px; justify-content: center; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); width: 100%; }
         .img-unit { display: flex; flex-direction: column; align-items: center; background: white; position: relative; }
-        .img-unit img { width: 100%; display: block; cursor: pointer; }
-        
-        /* 下载按钮悬浮在图片右下角，不遮挡预览 */
-        .dl-btn { 
-            position: absolute;
-            bottom: 5px;
-            right: 5px;
-            background: rgba(0,0,0,0.5);
-            color: white;
-            padding: 2px 6px;
-            font-size: 10px;
-            border-radius: 4px;
-            text-decoration: none;
-        }
-
-        .watermark-info { color: #ff5000; font-size: 0.8em; margin-top: 15px; background: #fff9f5; padding: 8px; border-radius: 8px; }
+        .img-unit img { width: 100%; display: block; }
+        .dl-btn { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.5); color: white; padding: 2px 6px; font-size: 10px; border-radius: 4px; text-decoration: none; }
         .footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; color: #bbb; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h1>📸 朋友圈全能切割</h1>
-        <p class="subtitle">让你的照片在朋友圈“横着走”</p>
-
-        <div class="controls">
-            <select id="mode">
-                <option value="9">九宫格 (3x3)</option>
-                <option value="3">三联画 (1x3)</option>
-            </select>
-            <input type="text" id="watermarkText" placeholder="添加你的个性水印" value="@qibulai17">
+        <h1>📸 朋友圈全能工具箱</h1>
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('cut')">九宫格切割</button>
+            <button class="tab-btn" onclick="switchTab('video')">视频擦开剪辑</button>
         </div>
 
-        <label class="upload-btn">
-            立即开始切割
-            <input type="file" id="imageInput" accept="image/*" style="display:none">
-        </label>
+        <!-- 选项卡 1: 切图功能 -->
+        <div id="tab-cut" class="content-section active">
+            <p class="subtitle">让你的照片在朋友圈“横着走”</p>
+            <div class="controls">
+                <select id="mode">
+                    <option value="9">九宫格 (3x3)</option>
+                    <option value="3">三联画 (1x3)</option>
+                </select>
+                <input type="text" id="watermarkText" placeholder="添加你的个性水印" value="@qibulai17">
+            </div>
+            <label class="upload-btn">选择照片<input type="file" id="imageInput" accept="image/*" style="display:none"></label>
+            <div id="grid-container" class="grid-3"></div>
+        </div>
 
-        <p class="watermark-info">✨ 预览已开启：长按图片保存，或点右下角保存</p>
-        
-        <div class="preview-title">朋友圈效果预览：</div>
-        <div id="grid-container" class="grid-3"></div>
+        <!-- 选项卡 2: 视频剪辑 (预留区) -->
+        <div id="tab-video" class="content-section">
+            <p class="subtitle">✨ 视频一键擦开特效（开发中）</p>
+            <div style="padding: 40px 20px; border: 2px dashed #ccc; border-radius: 15px; color: #999;">
+                这里是未来的视频神器入口<br>请先准备好“朋友圈蒙版图”
+            </div>
+        </div>
 
         <div class="footer">
             <p>🚀 由 qibulai17 开发 | 极简 · 安全 · 免安装</p>
@@ -79,6 +67,15 @@
     </div>
 
     <script>
+        // 选项卡切换逻辑
+        function switchTab(tabId) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        // 原有的切图逻辑全部保留在这里...
         const imageInput = document.getElementById('imageInput');
         const gridContainer = document.getElementById('grid-container');
         const modeSelect = document.getElementById('mode');
@@ -87,13 +84,10 @@
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
-                img.onload = function() {
-                    processImage(img);
-                };
+                img.onload = function() { processImage(img); };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
@@ -103,51 +97,33 @@
             gridContainer.innerHTML = '';
             const mode = parseInt(modeSelect.value);
             const watermark = watermarkInput.value;
-            
             const cols = 3;
             const rows = (mode === 9) ? 3 : 1;
-            
-            // 强制正方形切割逻辑，保证高级感
             const size = Math.min(img.width / cols, img.height / rows);
             const startX = (img.width - size * cols) / 2;
             const startY = (img.height - size * rows) / 2;
-
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = size;
-                    canvas.height = size;
-
-                    // 绘制图像（居中切割）
+                    canvas.width = size; canvas.height = size;
                     ctx.drawImage(img, startX + c * size, startY + r * size, size, size, 0, 0, size, size);
-
-                    // 绘制水印
                     if (watermark) {
                         ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-                        ctx.shadowColor = "rgba(0,0,0,0.4)";
-                        ctx.shadowBlur = 5;
-                        const fontSize = size / 12;
-                        ctx.font = `bold ${fontSize}px Arial`;
+                        ctx.font = `bold ${size / 12}px Arial`;
                         ctx.fillText(watermark, 20, size - 20);
                     }
-
                     const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-                    
                     const unit = document.createElement('div');
                     unit.className = 'img-unit';
-                    
                     const newImg = document.createElement('img');
                     newImg.src = dataUrl;
-                    
                     const dlBtn = document.createElement('a');
                     dlBtn.href = dataUrl;
-                    dlBtn.download = `wechat_cut_${r}_${c}.jpg`;
+                    dlBtn.download = `cut_${r}_${c}.jpg`;
                     dlBtn.className = 'dl-btn';
                     dlBtn.innerText = '保存';
-
-                    unit.appendChild(newImg);
-                    unit.appendChild(dlBtn);
+                    unit.appendChild(newImg); unit.appendChild(dlBtn);
                     gridContainer.appendChild(unit);
                 }
             }
