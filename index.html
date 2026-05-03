@@ -1,165 +1,70 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能工具箱-小米兼容版</title>
-    <style>
-        :root { --primary: #07c160; --bg: #f0f2f5; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
-        .card { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
-        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 12px; font-weight: bold; font-size: 14px; color: #555; }
-        .tab-btn.active { background: var(--primary); color: white; }
-        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; }
-        .btn:disabled { background: #ccc; }
-        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; }
-        video { width: 100%; display: block; }
-        .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; }
-        input[type=range] { width: 100%; accent-color: var(--primary); }
-        #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2 style="text-align:center; margin-top:0;">🛠️ 朋友圈全能工具箱</h2>
-        <div class="tabs">
-            <button class="tab-btn active">视频擦除特效</button>
-            <button class="tab-btn" onclick="location.reload()">清空重置</button>
-        </div>
+<!-- 在 script 里的 render 函数部分，我做了强制同步修改 -->
+<script>
+    // ... 前面的代码保持一致 ...
 
-        <div id="tab-video" class="content-section">
-            <input type="file" id="vidInput" accept="video/*" style="display:none">
-            <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 第一步：上传原视频</button>
+    async function processVideo() {
+        gBtn.disabled = true;
+        statusTxt.innerText = "🚀 正在进行深度兼容性合成，请稍候...";
+        
+        cvs.width = vPreview.videoWidth;
+        cvs.height = vPreview.videoHeight;
 
-            <div class="video-box" id="preview-container" style="display:none;">
-                <video id="v-preview" muted playsinline></video>
-            </div>
-            
-            <div class="video-box" id="result-container" style="display:none; border: 3px solid #07c160;">
-                <video id="v-final" controls playsinline></video>
-            </div>
+        // 强制使用最通用的 mimeType
+        const mime = 'video/webm;codecs=vp8'; 
+        const stream = cvs.captureStream(30);
+        const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 });
+        const chunks = [];
 
-            <div class="control-box" id="video-controls" style="display:none;">
-                <div style="font-size:14px; font-weight:bold;" id="time-label">🎬 选择起点 (生成5秒): 0.0s</div>
-                <input type="range" id="trimRange" min="0" value="0" step="0.1">
-                <p style="font-size:11px; color:#999; margin:5px 0 0 0;">(若预览黑屏，请尝试拖动进度条)</p>
-            </div>
-
-            <p id="status-txt"></p>
-            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 第二步：开始合成 (5秒)</button>
-            <button class="btn" id="download-btn" style="display:none; background:#1485ee;">⬇️ 第三步：保存到手机</button>
-        </div>
-    </div>
-
-    <!-- 强制使用带有时间戳的 URL 避免小米浏览器缓存旧蒙版 -->
-    <video id="v-mask" src="./mask.mp4" style="display:none" muted playsinline loop crossorigin="anonymous"></video>
-    <canvas id="hidden-cvs" style="display:none"></canvas>
-
-    <script>
-        const vPreview = document.getElementById('v-preview');
-        const vFinal = document.getElementById('v-final');
-        const vMask = document.getElementById('v-mask');
-        const cvs = document.getElementById('hidden-cvs');
-        const ctx = cvs.getContext('2d');
-        const trimRange = document.getElementById('trimRange');
-        const gBtn = document.getElementById('gen-btn');
-        const dBtn = document.getElementById('download-btn');
-        const statusTxt = document.getElementById('status-txt');
-
-        document.getElementById('vidInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if(!file) return;
-            vPreview.src = URL.createObjectURL(file);
-            vMask.load(); 
-            document.getElementById('preview-container').style.display = 'block';
-            document.getElementById('video-controls').style.display = 'block';
-            gBtn.style.display = 'block';
-            vPreview.onloadedmetadata = () => {
-                trimRange.max = Math.max(0, vPreview.duration - 5.1).toFixed(1);
-            };
+        recorder.ondataavailable = (e) => chunks.push(e.data);
+        recorder.onstop = () => {
+            const blob = new Blob(chunks, { type: mime });
+            vFinal.src = URL.createObjectURL(blob);
+            document.getElementById('preview-container').style.display = 'none';
+            document.getElementById('result-container').style.display = 'block';
+            statusTxt.innerText = "✅ 合成成功！若预览无特效，请直接下载到相册查看。";
+            dBtn.style.display = 'block';
         };
 
-        trimRange.oninput = () => {
-            vPreview.currentTime = parseFloat(trimRange.value);
-            document.getElementById('time-label').innerText = `🎬 选择起点 (生成5秒): ${vPreview.currentTime.toFixed(1)}s`;
-        };
+        const startPoint = parseFloat(trimRange.value);
+        vPreview.currentTime = startPoint;
+        vMask.currentTime = 0;
+        
+        // 关键：等待视频跳转到指定位置再开始
+        await new Promise(r => vPreview.onseeked = r);
 
-        async function processVideo() {
-            gBtn.disabled = true;
-            statusTxt.innerText = "⏳ 小米浏览器加速合成中...";
+        recorder.start();
+        vPreview.play();
+        vMask.play();
+
+        const fps = 30;
+        const interval = 1000 / fps;
+        let lastDraw = 0;
+
+        function render(now) {
+            const elapsed = vPreview.currentTime - startPoint;
             
-            // 确保画布尺寸和原视频完全一致
-            cvs.width = vPreview.videoWidth;
-            cvs.height = vPreview.videoHeight;
+            if (elapsed >= 5 || vPreview.ended) {
+                recorder.stop();
+                vPreview.pause();
+                vMask.pause();
+                return;
+            }
 
-            // 小米浏览器通常对 webm 支持更好，尝试优先使用
-            let type = 'video/webm;codecs=vp8';
-            if (!MediaRecorder.isTypeSupported(type)) type = 'video/mp4';
-            
-            const stream = cvs.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 10000000 });
-            const chunks = [];
+            // 强制每一帧都重新计算蒙版位置
+            if (vMask.currentTime > 3.8) vMask.currentTime = 0;
 
-            recorder.ondataavailable = (e) => chunks.push(e.data);
-            recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: type });
-                const url = URL.createObjectURL(blob);
-                vFinal.src = url;
-                document.getElementById('preview-container').style.display = 'none';
-                document.getElementById('result-container').style.display = 'block';
-                statusTxt.innerText = "✅ 合成完毕！请点击下方按钮保存。";
-                dBtn.style.display = 'block';
-                dBtn.onclick = () => {
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `wechat_fx_${Date.now()}.mp4`;
-                    a.click();
-                };
-            };
-
-            const startPoint = parseFloat(trimRange.value);
-            vPreview.currentTime = startPoint;
-            vMask.currentTime = 0;
-            
-            // 关键修正：确保视频层在小米浏览器中能被激活
-            await vPreview.play();
-            await vMask.play();
-
-            recorder.start();
-
-            // 使用逻辑时间戳代替自然播放时间，防止掉帧导致特效消失
-            const startTime = performance.now();
-            
-            function render() {
-                const now = performance.now();
-                const elapsed = (now - startTime) / 1000;
-                
-                if (elapsed >= 5.0 || vPreview.ended) {
-                    recorder.stop();
-                    vPreview.pause();
-                    vMask.pause();
-                    return;
-                }
-
-                // 强制蒙版在 4 秒内循环
-                if (vMask.currentTime > 3.8) vMask.currentTime = 0;
-
+            // 只有时间流逝了才画下一帧，防止重复帧导致文件过大或卡死
+            if (now - lastDraw >= interval) {
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
-                
-                // 第一步：画原图
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(vPreview, 0, 0, cvs.width, cvs.height);
-                
-                // 第二步：叠加特效
-                // 小米浏览器如果渲染不出特效，通常是这一步复合操作被跳过了
                 ctx.globalCompositeOperation = 'screen';
                 ctx.drawImage(vMask, 0, 0, cvs.width, cvs.height);
-                
-                requestAnimationFrame(render);
+                lastDraw = now;
             }
-            render();
+            
+            requestAnimationFrame(render);
         }
-    </script>
-</body>
-</html>
+        requestAnimationFrame(render);
+    }
+</script>
