@@ -5,72 +5,76 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>朋友圈全能切割神器 - By qibulai17</title>
     <style>
-        :root { --primary: #07c160; --bg: #f8f9fa; }
+        :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
-        .card { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
-        h1 { color: #333; margin-bottom: 10px; font-size: 1.5em; }
-        .subtitle { color: #888; margin-bottom: 25px; }
-        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; }
-        .upload-btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; }
+        .card { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+        h1 { color: #333; margin-bottom: 5px; font-size: 1.4em; }
+        .subtitle { color: #888; margin-bottom: 25px; font-size: 0.9em; }
         
-        /* 网格容器 */
+        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; }
+        
+        .upload-btn { background: var(--primary); color: white; padding: 12px 35px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; transition: 0.3s; }
+        .upload-btn:active { transform: scale(0.95); opacity: 0.9; }
+
+        /* 朋友圈模拟预览区 */
+        .preview-title { margin-top: 30px; font-weight: bold; color: #576b95; font-size: 0.9em; text-align: left; padding-left: 10px; }
         #grid-container { 
             display: grid; 
-            gap: 12px; 
-            margin-top: 20px; 
-            justify-content: center; 
+            gap: 6px; /* 朋友圈经典的图片间隙 */
+            margin-top: 10px; 
+            background: #ededed; /* 朋友圈底色 */
+            padding: 10px;
+            border-radius: 12px;
+            justify-content: center;
         }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); max-width: 500px; margin: 0 auto; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); width: 100%; box-sizing: border-box; }
         
-        /* 每一个切图单元 */
-        .img-unit { display: flex; flex-direction: column; align-items: center; }
-        .img-unit img { 
-            width: 100%; 
-            border-radius: 8px; 
-            border: 1px solid #eee; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
+        .img-unit { display: flex; flex-direction: column; align-items: center; background: white; position: relative; }
+        .img-unit img { width: 100%; display: block; cursor: pointer; }
         
-        /* 下载小按钮 */
+        /* 下载按钮悬浮在图片右下角，不遮挡预览 */
         .dl-btn { 
-            margin-top: 8px;
-            padding: 4px 10px;
-            font-size: 12px;
-            background: #f0f0f0;
-            color: #666;
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 2px 6px;
+            font-size: 10px;
             border-radius: 4px;
             text-decoration: none;
-            border: 1px solid #ddd;
         }
 
-        .watermark-info { color: #ff5000; font-size: 0.85em; margin-top: 15px; font-weight: bold; }
-        .footer { margin-top: 40px; border-top: 1px dotted #ccc; padding-top: 20px; color: #999; font-size: 0.9em; }
+        .watermark-info { color: #ff5000; font-size: 0.8em; margin-top: 15px; background: #fff9f5; padding: 8px; border-radius: 8px; }
+        .footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; color: #bbb; font-size: 0.8em; }
     </style>
 </head>
 <body>
     <div class="card">
         <h1>📸 朋友圈全能切割</h1>
-        <p class="subtitle">九宫格 · 三联画 · 自动水印</p>
+        <p class="subtitle">让你的照片在朋友圈“横着走”</p>
 
         <div class="controls">
             <select id="mode">
                 <option value="9">九宫格 (3x3)</option>
                 <option value="3">三联画 (1x3)</option>
             </select>
-            <input type="text" id="watermarkText" placeholder="输入个性水印" value="@qibulai17">
+            <input type="text" id="watermarkText" placeholder="添加你的个性水印" value="@qibulai17">
         </div>
 
         <label class="upload-btn">
-            选择照片
+            立即开始切割
             <input type="file" id="imageInput" accept="image/*" style="display:none">
         </label>
 
-        <p class="watermark-info">✨ 手机用户：长按图片即可保存到相册</p>
+        <p class="watermark-info">✨ 预览已开启：长按图片保存，或点右下角保存</p>
+        
+        <div class="preview-title">朋友圈效果预览：</div>
         <div id="grid-container" class="grid-3"></div>
 
         <div class="footer">
-            <p>🚀 由 qibulai17 开发 | 你的私人切图专家</p>
+            <p>🚀 由 qibulai17 开发 | 极简 · 安全 · 免安装</p>
         </div>
     </div>
 
@@ -103,31 +107,31 @@
             const cols = 3;
             const rows = (mode === 9) ? 3 : 1;
             
-            const cellWidth = img.width / cols;
-            const cellHeight = img.height / rows;
+            // 强制正方形切割逻辑，保证高级感
+            const size = Math.min(img.width / cols, img.height / rows);
+            const startX = (img.width - size * cols) / 2;
+            const startY = (img.height - size * rows) / 2;
 
             for (let r = 0; r < rows; r++) {
                 for (let c = 0; c < cols; c++) {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    canvas.width = cellWidth;
-                    canvas.height = cellHeight;
+                    canvas.width = size;
+                    canvas.height = size;
 
-                    // 绘制图像
-                    ctx.drawImage(img, c * cellWidth, r * cellHeight, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
+                    // 绘制图像（居中切割）
+                    ctx.drawImage(img, startX + c * size, startY + r * size, size, size, 0, 0, size, size);
 
                     // 绘制水印
                     if (watermark) {
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                        const fontSize = cellWidth / 12;
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                        ctx.shadowColor = "rgba(0,0,0,0.4)";
+                        ctx.shadowBlur = 5;
+                        const fontSize = size / 12;
                         ctx.font = `bold ${fontSize}px Arial`;
-                        // 稍微给点阴影让水印更清晰
-                        ctx.shadowColor = "rgba(0,0,0,0.5)";
-                        ctx.shadowBlur = 4;
-                        ctx.fillText(watermark, 15, cellHeight - 15);
+                        ctx.fillText(watermark, 20, size - 20);
                     }
 
-                    // 关键点：将 Canvas 转换为真正的图片标签 <img>
                     const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
                     
                     const unit = document.createElement('div');
@@ -138,7 +142,7 @@
                     
                     const dlBtn = document.createElement('a');
                     dlBtn.href = dataUrl;
-                    dlBtn.download = `cut_${r}_${c}.jpg`;
+                    dlBtn.download = `wechat_cut_${r}_${c}.jpg`;
                     dlBtn.className = 'dl-btn';
                     dlBtn.innerText = '保存';
 
