@@ -50,7 +50,6 @@
             <button class="btn" onclick="document.getElementById('imgInput').click()">📸 上传图片切割</button>
             <p style="font-size: 12px; color: #999; text-align: center; margin-top: 10px;">长按下方切好的单张图片即可保存</p>
             <div class="grid-container" id="grid-box">
-                <!-- 占位格子 -->
                 <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
                 <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
                 <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
@@ -62,9 +61,9 @@
             <input type="file" id="vidInput" accept="video/*" style="display:none">
             <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传你的原视频</button>
 
-            <!-- 预览区 -->
+            <!-- 预览区：保持原汁原味，不加蒙版 -->
             <div class="video-box" id="preview-container" style="display:none;">
-                <video id="v-preview" controls playsinline></video>
+                <video id="v-preview" muted playsinline></video>
             </div>
             
             <!-- 生成后的视频区 -->
@@ -72,27 +71,25 @@
                 <video id="v-final" controls playsinline></video>
             </div>
 
-            <!-- B站式滑动选择器 -->
+            <!-- 滑动选择器 -->
             <div class="control-box" id="video-controls" style="display:none;">
-                <div style="font-size:14px; font-weight:bold; color:#333;" id="time-label">🎬 滑动预览并选择起点: 0.0s</div>
+                <div style="font-size:14px; font-weight:bold; color:#333;" id="time-label">🎬 选择起点 (生成后5秒): 0.0s</div>
                 <input type="range" id="trimRange" min="0" value="0" step="0.1">
-                <p style="font-size:11px; color:#999; margin:8px 0 0 0;">(拖动进度条预览画面，将自动截取选定时间点后的 3 秒)</p>
+                <p style="font-size:11px; color:#999; margin:8px 0 0 0;">预览中仅显示原视频，合成时会自动加入擦除特效。</p>
             </div>
 
             <p id="status-txt"></p>
             
-            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始生成特效</button>
-            <!-- 专属下载按钮解决长按不生效问题 -->
+            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始生成 5 秒特效</button>
             <button class="btn btn-download" id="download-btn">⬇️ 3. 点此直接下载视频</button>
         </div>
     </div>
 
-    <!-- 隐藏的工作区 -->
+    <!-- 隐藏工作区 -->
     <canvas id="hidden-cvs" style="display:none"></canvas>
     <video id="v-mask" src="./mask.mp4" style="display:none" muted playsinline crossorigin="anonymous"></video>
 
     <script>
-        // --- 选项卡切换逻辑 ---
         function switchTab(tabId) {
             document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -100,7 +97,7 @@
             event.target.classList.add('active');
         }
 
-        // --- 九宫格切割逻辑 ---
+        // 九宫格逻辑
         document.getElementById('imgInput').onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -112,11 +109,9 @@
                 const size = Math.min(img.width, img.height);
                 for(let i = 0; i < 9; i++) {
                     const cvs = document.createElement('canvas');
-                    cvs.width = cvs.height = 400; // 高清保存
+                    cvs.width = cvs.height = 400;
                     const ctx = cvs.getContext('2d');
                     ctx.drawImage(img, (i%3)*size/3, Math.floor(i/3)*size/3, size/3, size/3, 0, 0, 400, 400);
-                    
-                    // 转换成图片，彻底解决 Canvas 无法长按保存的问题
                     const resultImg = document.createElement('img');
                     resultImg.src = cvs.toDataURL("image/jpeg", 0.9);
                     resultImg.style.width = '100%';
@@ -126,7 +121,7 @@
             }
         };
 
-        // --- 视频特效逻辑 ---
+        // 视频特效逻辑
         const vPreview = document.getElementById('v-preview');
         const vFinal = document.getElementById('v-final');
         const vMask = document.getElementById('v-mask');
@@ -137,17 +132,10 @@
         const dBtn = document.getElementById('download-btn');
         const statusTxt = document.getElementById('status-txt');
 
-        let originalVideoBlobUrl = "";
-
-        // 1. 上传视频
         document.getElementById('vidInput').onchange = (e) => {
             const file = e.target.files[0];
             if(!file) return;
-            
-            if(originalVideoBlobUrl) URL.revokeObjectURL(originalVideoBlobUrl);
-            originalVideoBlobUrl = URL.createObjectURL(file);
-            vPreview.src = originalVideoBlobUrl;
-            
+            vPreview.src = URL.createObjectURL(file);
             document.getElementById('preview-container').style.display = 'block';
             document.getElementById('result-container').style.display = 'none';
             document.getElementById('video-controls').style.display = 'block';
@@ -156,24 +144,23 @@
             statusTxt.innerText = "";
 
             vPreview.onloadedmetadata = () => {
-                // 确保至少有视频长度，防止太短报错
-                trimRange.max = Math.max(0, vPreview.duration - 3).toFixed(1);
+                // 修改点：确保用户可以截取最后5秒之前的任何位置
+                trimRange.max = Math.max(0, vPreview.duration - 5).toFixed(1);
             };
         };
 
-        // 2. B站式滑动预览
+        // 纯净预览：只看原视频
         trimRange.oninput = () => {
             const time = parseFloat(trimRange.value);
-            vPreview.currentTime = time; // 实时更新画面
-            document.getElementById('time-label').innerText = `🎬 滑动预览并选择起点: ${time.toFixed(1)}s`;
+            vPreview.currentTime = time;
+            document.getElementById('time-label').innerText = `🎬 选择起点 (生成后5秒): ${time.toFixed(1)}s`;
         };
 
-        // 3. 开始合成
         async function processVideo() {
             gBtn.disabled = true;
-            statusTxt.innerText = "⏳ 正在拼命合成中，请不要切换页面...";
+            statusTxt.innerText = "⏳ 正在合成 5 秒特效，请稍候...";
             
-            // 完美匹配原视频分辨率，防止变形
+            // 严防拉伸：设置画布为原视频真实尺寸
             cvs.width = vPreview.videoWidth;
             cvs.height = vPreview.videoHeight;
 
@@ -181,31 +168,25 @@
             if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
             
             const stream = cvs.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 5000000 });
+            const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 6000000 });
             const chunks = [];
 
             recorder.ondataavailable = (e) => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: mime });
                 const finalUrl = URL.createObjectURL(blob);
-                
                 vFinal.src = finalUrl;
                 document.getElementById('preview-container').style.display = 'none';
                 document.getElementById('result-container').style.display = 'block';
-                
-                statusTxt.innerText = "✅ 合成成功！请点击下方蓝色按钮下载。";
+                statusTxt.innerText = "✅ 5秒特效合成成功！";
                 gBtn.disabled = false;
                 gBtn.style.display = 'none';
-                
-                // 配置下载按钮
                 dBtn.style.display = 'block';
                 dBtn.onclick = () => {
                     const a = document.createElement('a');
                     a.href = finalUrl;
-                    a.download = '特效朋友圈.mp4';
-                    document.body.appendChild(a);
+                    a.download = '5秒擦除特效.mp4';
                     a.click();
-                    document.body.removeChild(a);
                 };
             };
 
@@ -214,30 +195,24 @@
             vMask.currentTime = 0;
             
             await vPreview.play();
-            // 确保蒙版视频静音播放
-            vMask.muted = true;
             await vMask.play();
-            
             recorder.start();
 
-            // 核心渲染循环
             function render() {
-                const now = vPreview.currentTime - startPoint;
+                const elapsed = vPreview.currentTime - startPoint;
                 
-                // 只录制3秒
-                if (now >= 3 || vPreview.ended) {
+                // 修改点：录制时长改为 5 秒
+                if (elapsed >= 5 || vPreview.ended) {
                     recorder.stop();
                     vPreview.pause();
                     vMask.pause();
                     return;
                 }
 
-                // 先画你的原视频
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(vPreview, 0, 0, cvs.width, cvs.height);
                 
-                // 再画擦除蒙版 (使用 screen 滤色模式，黑底透明，保留白光)
-                // 注意：由于是铺满画面，这里强制拉伸蒙版覆盖全屏
+                // 合成时才叠加上蒙版
                 ctx.globalCompositeOperation = 'screen';
                 ctx.drawImage(vMask, 0, 0, cvs.width, cvs.height);
                 
