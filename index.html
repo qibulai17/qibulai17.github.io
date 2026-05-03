@@ -3,66 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能工具箱 - 终极版</title>
+    <title>朋友圈工具箱 - 保护原片版</title>
     <style>
         :root { --primary: #07c160; --bg: #f0f2f5; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; text-align: center; }
-        .card { max-width: 450px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
+        .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         
-        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; margin: 20px auto; }
-        .wx-avatar { width: 40px; height: 40px; background: #ddd; border-radius: 4px; }
+        /* 微信朋友圈容器 */
+        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border-bottom: 1px solid #eee; margin-top: 20px; }
+        .wx-avatar { width: 42px; height: 42px; background: #ddd; border-radius: 6px; flex-shrink: 0; }
         .wx-content { flex: 1; }
+        .wx-name { color: #576b95; font-size: 16px; font-weight: 500; margin-bottom: 8px; }
         
-        /* 核心修改：确保容器裁剪超出的部分 */
+        /* 视频显示区：这个区域的大小由用户视频决定 */
         .wx-media { 
             position: relative; 
             width: 100%; 
             background: #000; 
             border-radius: 4px;
-            overflow: hidden; /* 这一行至关重要：把多出的黑边藏起来 */
+            overflow: hidden; /* 这一步是为了把模板放大的部分藏起来 */
             line-height: 0;
         }
         
-        /* 用户视频 */
-        #user-video { width: 100%; display: block; }
+        /* 用户视频：绝对不裁剪，保持原貌 */
+        #user-video { 
+            width: 100%; 
+            height: auto; /* 高度根据视频比例自动撑开 */
+            display: block; 
+            position: relative;
+            z-index: 1;
+        }
         
-        /* 特效模板：改用 cover */
+        /* 特效模板：牺牲自己，铺满全屏 */
         #mask-video { 
             position: absolute; 
-            top: 0; left: 0; 
-            width: 100% !important; 
-            height: 100% !important; 
-            object-fit: cover !important; /* 关键：放大填充，把黑边裁掉 */
+            top: 50%; 
+            left: 50%; 
+            width: 100%;
+            height: 100%;
+            /* 关键：用 cover 模式填满容器，并额外放大 1.2 倍，彻底挤掉模板自带的黑边 */
+            transform: translate(-50%, -50%) scale(1.2); 
+            object-fit: cover; 
             mix-blend-mode: screen; 
             z-index: 10;
             pointer-events: none;
+            /* 增强对比度，让模板里的黑色更透，白色更亮 */
+            filter: contrast(150%) brightness(110%);
         }
 
         .btn { background: var(--primary); color: white; padding: 12px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-sub { background: #f8f8f8; color: #666; font-size: 13px; border: 1px dashed #ddd; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3>✨ 朋友圈高级擦开特效</h3>
+        <h3 style="margin-top:0">朋友圈特效 - 画面不缩水版</h3>
         
         <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
-        <button class="btn" style="background:#576b95" onclick="document.getElementById('maskVideoInput').click()">1. 上传特效模板</button>
+        <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">1. 上传特效模板视频</button>
         
         <input type="file" id="userVideoInput" accept="video/*" style="display:none">
-        <button class="btn" onclick="document.getElementById('userVideoInput').click()">2. 上传短视频</button>
+        <button class="btn" style="background:#333" onclick="document.getElementById('userVideoInput').click()">2. 上传你要发的短视频</button>
         
         <div class="wx-post">
             <div class="wx-avatar"></div>
             <div class="wx-content">
-                <div style="color:#576b95; font-weight:bold; margin-bottom:5px;">特效达人</div>
+                <div class="wx-name">那个Ta ✨</div>
                 <div class="wx-media">
+                    <!-- 底层：你的原片 -->
                     <video id="user-video" loop muted playsinline></video>
+                    <!-- 顶层：被放大的特效 -->
                     <video id="mask-video" loop muted playsinline></video>
                 </div>
+                <div style="color:#b2b2b2; font-size:13px; margin-top:8px;">刚刚</div>
             </div>
         </div>
         
-        <button class="btn" onclick="runErase()" style="background:#333">🎬 播放特效</button>
+        <button class="btn" onclick="runErase()">🔄 播放预览</button>
     </div>
 
     <script>
@@ -74,10 +91,15 @@
         };
 
         document.getElementById('userVideoInput').onchange = (e) => {
-            if(e.target.files[0]) uv.src = URL.createObjectURL(e.target.files[0]);
+            if(e.target.files[0]) {
+                uv.src = URL.createObjectURL(e.target.files[0]);
+                // 当用户视频加载后，自动根据比例显示，不缩放
+                uv.onloadedmetadata = () => runErase();
+            }
         };
 
         function runErase() {
+            if (!uv.src || !mv.src) return;
             uv.currentTime = 0; mv.currentTime = 0;
             uv.play(); mv.play();
         }
