@@ -3,50 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能工具箱-稳定版</title>
+    <title>朋友圈全能工具箱-全浏览器兼容版</title>
     <style>
         :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
         .card { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
         .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 12px; font-weight: bold; font-size: 15px; color: #555; cursor: pointer; transition: 0.3s; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 12px; font-weight: bold; font-size: 15px; color: #555; cursor: pointer; }
         .tab-btn.active { background: var(--primary); color: white; }
         .content-section { display: none; }
         .content-section.active { display: block; }
-        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; transition: 0.3s; }
-        .btn:disabled { background: #ccc; opacity: 0.7; }
-        .btn-download { background: #1485ee; display: none; }
-        .grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; }
-        .grid-item { width: 100%; aspect-ratio: 1; background: #f9f9f9; border-radius: 4px; border: 1px dashed #ddd; }
-        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; position: relative; }
+        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; }
+        .btn:disabled { background: #ccc; }
+        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; }
         video { width: 100%; display: block; }
         .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; }
-        input[type=range] { width: 100%; height: 6px; border-radius: 3px; accent-color: var(--primary); margin-top: 10px; }
-        #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; font-weight: bold; }
+        input[type=range] { width: 100%; accent-color: var(--primary); }
+        #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2 style="margin:0 0 15px 0; text-align:center;">🛠️ 朋友圈全能工具箱</h2>
-        
+        <h2 style="text-align:center;">🛠️ 朋友圈全能工具箱</h2>
         <div class="tabs">
-            <button class="tab-btn active" onclick="switchTab('tab-grid')">九宫格切割</button>
-            <button class="tab-btn" onclick="switchTab('tab-video')">视频擦除特效</button>
+            <button class="tab-btn" onclick="location.reload()">刷新重置</button>
+            <button class="tab-btn active">视频擦除特效</button>
         </div>
 
-        <div id="tab-grid" class="content-section active">
-            <input type="file" id="imgInput" accept="image/*" style="display:none">
-            <button class="btn" onclick="document.getElementById('imgInput').click()">📸 上传图片切割</button>
-            <div class="grid-container" id="grid-box">
-                <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
-                <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
-                <div class="grid-item"></div><div class="grid-item"></div><div class="grid-item"></div>
-            </div>
-        </div>
-
-        <div id="tab-video" class="content-section">
+        <div id="tab-video" class="content-section active">
             <input type="file" id="vidInput" accept="video/*" style="display:none">
-            <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传你的原视频</button>
+            <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传视频</button>
 
             <div class="video-box" id="preview-container" style="display:none;">
                 <video id="v-preview" muted playsinline></video>
@@ -57,53 +43,21 @@
             </div>
 
             <div class="control-box" id="video-controls" style="display:none;">
-                <div style="font-size:14px; font-weight:bold; color:#333;" id="time-label">🎬 选择起点 (生成后5秒): 0.0s</div>
+                <div style="font-size:14px; font-weight:bold;" id="time-label">🎬 选择起点 (生成5秒): 0.0s</div>
                 <input type="range" id="trimRange" min="0" value="0" step="0.1">
             </div>
 
             <p id="status-txt"></p>
-            
-            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始生成 5 秒特效</button>
-            <button class="btn btn-download" id="download-btn">⬇️ 3. 点此直接下载视频</button>
+            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始生成</button>
+            <button class="btn" id="download-btn" style="display:none; background:#1485ee;">⬇️ 3. 下载视频</button>
         </div>
     </div>
 
-    <!-- 蒙版视频：添加 loop 解决 4 秒变 5 秒问题，添加 preload 解决无特效问题 -->
-    <video id="v-mask" src="./mask.mp4" style="display:none" muted playsinline loop preload="auto" crossorigin="anonymous"></video>
+    <!-- 关键点：添加 crossorigin 解决标准浏览器画布污染问题 -->
+    <video id="v-mask" src="./mask.mp4" style="display:none" muted playsinline loop crossorigin="anonymous"></video>
     <canvas id="hidden-cvs" style="display:none"></canvas>
 
     <script>
-        function switchTab(tabId) {
-            document.querySelectorAll('.content-section').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-            document.getElementById(tabId).classList.add('active');
-            if(event) event.target.classList.add('active');
-        }
-
-        // 九宫格逻辑保持不变
-        document.getElementById('imgInput').onchange = (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const img = new Image();
-            img.src = URL.createObjectURL(file);
-            img.onload = () => {
-                const box = document.getElementById('grid-box');
-                box.innerHTML = ''; 
-                const size = Math.min(img.width, img.height);
-                for(let i = 0; i < 9; i++) {
-                    const cvs = document.createElement('canvas');
-                    cvs.width = cvs.height = 400;
-                    const ctx = cvs.getContext('2d');
-                    ctx.drawImage(img, (i%3)*size/3, Math.floor(i/3)*size/3, size/3, size/3, 0, 0, 400, 400);
-                    const resultImg = document.createElement('img');
-                    resultImg.src = cvs.toDataURL("image/jpeg", 0.9);
-                    resultImg.style.width = '100%';
-                    resultImg.style.borderRadius = '4px';
-                    box.appendChild(resultImg);
-                }
-            }
-        };
-
         const vPreview = document.getElementById('v-preview');
         const vFinal = document.getElementById('v-final');
         const vMask = document.getElementById('v-mask');
@@ -118,39 +72,29 @@
             const file = e.target.files[0];
             if(!file) return;
             vPreview.src = URL.createObjectURL(file);
-            vMask.load(); // 预加载蒙版
+            vMask.load(); 
             document.getElementById('preview-container').style.display = 'block';
-            document.getElementById('result-container').style.display = 'none';
             document.getElementById('video-controls').style.display = 'block';
             gBtn.style.display = 'block';
-            dBtn.style.display = 'none';
-            statusTxt.innerText = "";
             vPreview.onloadedmetadata = () => {
                 trimRange.max = Math.max(0, vPreview.duration - 5).toFixed(1);
             };
         };
 
         trimRange.oninput = () => {
-            const time = parseFloat(trimRange.value);
-            vPreview.currentTime = time;
-            document.getElementById('time-label').innerText = `🎬 选择起点 (生成后5秒): ${time.toFixed(1)}s`;
+            vPreview.currentTime = parseFloat(trimRange.value);
+            document.getElementById('time-label').innerText = `🎬 选择起点 (生成5秒): ${vPreview.currentTime.toFixed(1)}s`;
         };
 
         async function processVideo() {
-            if (vMask.readyState < 2) {
-                statusTxt.innerText = "⚠️ 蒙版视频加载中，请稍后再试...";
-                return;
-            }
-
             gBtn.disabled = true;
-            statusTxt.innerText = "⏳ 正在合成 5 秒特效 (含自动补齐)...";
+            statusTxt.innerText = "⏳ 正在合成特效，请勿离开...";
             
             cvs.width = vPreview.videoWidth;
             cvs.height = vPreview.videoHeight;
 
-            let mime = 'video/mp4';
-            if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
-            
+            // 自动匹配最兼容的格式
+            const mime = MediaRecorder.isTypeSupported('video/mp4') ? 'video/mp4' : 'video/webm';
             const stream = cvs.captureStream(30);
             const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 8000000 });
             const chunks = [];
@@ -158,17 +102,16 @@
             recorder.ondataavailable = (e) => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: mime });
-                vFinal.src = URL.createObjectURL(blob);
+                const url = URL.createObjectURL(blob);
+                vFinal.src = url;
                 document.getElementById('preview-container').style.display = 'none';
                 document.getElementById('result-container').style.display = 'block';
-                statusTxt.innerText = "✅ 5秒特效合成成功！";
-                gBtn.disabled = false;
-                gBtn.style.display = 'none';
+                statusTxt.innerText = "✅ 合成成功！";
                 dBtn.style.display = 'block';
                 dBtn.onclick = () => {
                     const a = document.createElement('a');
-                    a.href = vFinal.src;
-                    a.download = 'fixed_5s_effect.mp4';
+                    a.href = url;
+                    a.download = 'fx_video.mp4';
                     a.click();
                 };
             };
@@ -177,15 +120,19 @@
             vPreview.currentTime = startPoint;
             vMask.currentTime = 0;
             
-            // 确保两者都在播放
-            await vPreview.play();
-            await vMask.play();
+            // 解决部分浏览器必须手动触发播放的问题
+            try {
+                await vPreview.play();
+                await vMask.play();
+            } catch (e) {
+                console.error("播放失败:", e);
+            }
+
             recorder.start();
 
             function render() {
                 const elapsed = vPreview.currentTime - startPoint;
                 
-                // 强制录满 5 秒
                 if (elapsed >= 5 || vPreview.ended) {
                     recorder.stop();
                     vPreview.pause();
@@ -193,15 +140,20 @@
                     return;
                 }
 
+                // 关键点：每帧重置蒙版时间轴，防止它停在 4 秒处
+                if (vMask.currentTime >= 3.9) {
+                    vMask.currentTime = 0;
+                }
+
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
                 
-                // 1. 画原视频
+                // 第一层：原视频
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(vPreview, 0, 0, cvs.width, cvs.height);
                 
-                // 2. 叠加热点蒙版 (Screen模式)
+                // 第二层：蒙版特效
+                // 使用 'screen' 滤色模式，黑色背景会自动变透明
                 ctx.globalCompositeOperation = 'screen';
-                // 强制拉伸蒙版以覆盖不同比例的原视频
                 ctx.drawImage(vMask, 0, 0, cvs.width, cvs.height);
                 
                 requestAnimationFrame(render);
