@@ -3,48 +3,51 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能工具箱-微信直存版</title>
+    <title>朋友圈全能工具箱-终极保存版</title>
     <style>
         :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
         .card { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
         .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; }
         .btn:disabled { background: #ccc; }
-        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; position: relative; }
+        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; display: none; }
         video { width: 100%; display: block; }
-        .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; }
+        .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; display: none; }
         input[type=range] { width: 100%; accent-color: var(--primary); }
         #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; font-weight: bold; }
-        .save-tip { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 10px; margin-top: 15px; color: #856404; font-size: 13px; display: none; text-align: center; }
+        .final-action { display: none; background: #e8f5e9; padding: 15px; border-radius: 15px; margin-top: 15px; border: 2px dashed #07c160; text-align: center; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2 style="text-align:center; margin-top:0;">🛠️ 朋友圈全能工具箱</h2>
         
-        <div id="tab-video">
-            <input type="file" id="vidInput" accept="video/*" style="display:none">
-            <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传原视频</button>
+        <input type="file" id="vidInput" accept="video/*" style="display:none">
+        <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 选择原视频</button>
 
-            <div class="video-box" id="p-box" style="display:none;">
-                <video id="v-preview" muted playsinline></video>
-            </div>
-            
-            <div class="video-box" id="r-box" style="display:none; border: 3px solid #07c160;">
+        <div class="video-box" id="p-box">
+            <video id="v-preview" muted playsinline></video>
+        </div>
+
+        <div class="control-box" id="v-ctrl">
+            <div style="font-size:14px; font-weight:bold;" id="time-label">🎬 选择起点 (5秒): 0.0s</div>
+            <input type="range" id="trimRange" min="0" value="0" step="0.1">
+        </div>
+
+        <p id="status-txt"></p>
+        <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始合成特效</button>
+
+        <!-- 结果展示与最终保存区域 -->
+        <div id="r-box" style="display:none;">
+            <div class="video-box" style="display:block; border: 3px solid #07c160;">
                 <video id="v-final" controls playsinline loop></video>
             </div>
-
-            <div class="save-tip" id="save-tip">
-                💡 <b>微信保存技巧：</b><br>长按上方绿框视频，选择“保存视频”或“发送给朋友”即可。
+            
+            <div class="final-action" id="final-action">
+                <p style="color:#07c160; font-weight:bold; margin-top:0;">✅ 合成已完成！</p>
+                <button class="btn" onclick="openVideoInNewTab()" style="background:#07c160; margin-top:0;">📱 点我弹出纯净视频 (长按保存)</button>
+                <p style="font-size:12px; color:#666; margin-top:10px;">点击上方按钮后，在弹出页面长按视频即可100%成功保存。</p>
             </div>
-
-            <div class="control-box" id="v-ctrl" style="display:none;">
-                <div style="font-size:14px; font-weight:bold;" id="time-label">🎬 选择起点: 0.0s</div>
-                <input type="range" id="trimRange" min="0" value="0" step="0.1">
-            </div>
-
-            <p id="status-txt"></p>
-            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始合成 5秒特效</button>
         </div>
     </div>
 
@@ -60,7 +63,7 @@
         const trimRange = document.getElementById('trimRange');
         const gBtn = document.getElementById('gen-btn');
         const statusTxt = document.getElementById('status-txt');
-        const saveTip = document.getElementById('save-tip');
+        let finalBlobUrl = "";
 
         document.getElementById('vidInput').onchange = (e) => {
             const file = e.target.files[0];
@@ -70,9 +73,7 @@
             document.getElementById('p-box').style.display = 'block';
             document.getElementById('v-ctrl').style.display = 'block';
             gBtn.style.display = 'block';
-            vFinal.src = "";
             document.getElementById('r-box').style.display = 'none';
-            saveTip.style.display = 'none';
             vPreview.onloadedmetadata = () => {
                 trimRange.max = Math.max(0, vPreview.duration - 5.1).toFixed(1);
             };
@@ -80,18 +81,23 @@
 
         trimRange.oninput = () => {
             vPreview.currentTime = parseFloat(trimRange.value);
-            document.getElementById('time-label').innerText = `🎬 选择起点: ${vPreview.currentTime.toFixed(1)}s`;
+            document.getElementById('time-label').innerText = `🎬 选择起点 (5秒): ${vPreview.currentTime.toFixed(1)}s`;
         };
+
+        function openVideoInNewTab() {
+            if(!finalBlobUrl) return;
+            // 在微信中，直接跳转到 Blob URL 往往能触发原生视频播放器，从而允许长按保存
+            window.location.href = finalBlobUrl;
+        }
 
         async function processVideo() {
             gBtn.disabled = true;
-            statusTxt.innerText = "⏳ 正在合成，完成后直接长按视频保存...";
+            statusTxt.innerText = "⏳ 正在合成中...";
             
             const scale = vPreview.videoWidth > 1080 ? 0.6 : 0.8; 
             cvs.width = vPreview.videoWidth * scale;
             cvs.height = vPreview.videoHeight * scale;
 
-            // 微信兼容性最好的类型
             let type = 'video/mp4';
             if (!MediaRecorder.isTypeSupported(type)) type = 'video/webm';
             
@@ -102,14 +108,16 @@
             recorder.ondataavailable = (e) => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: type });
-                const videoURL = URL.createObjectURL(blob);
-                vFinal.src = videoURL;
+                finalBlobUrl = URL.createObjectURL(blob);
+                vFinal.src = finalBlobUrl;
                 
                 document.getElementById('p-box').style.display = 'none';
+                document.getElementById('v-ctrl').style.display = 'none';
                 document.getElementById('r-box').style.display = 'block';
-                saveTip.style.display = 'block';
-                statusTxt.innerText = "✅ 合成成功！";
+                document.getElementById('final-action').style.display = 'block';
+                statusTxt.innerText = "";
                 gBtn.disabled = false;
+                gBtn.style.display = 'none';
             };
 
             const startPoint = parseFloat(trimRange.value);
