@@ -5,60 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>朋友圈全能工具箱 - By qibulai17</title>
     <style>
-        :root { --primary: #07c160; --bg: #f0f2f5; }
-        body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 10px; text-align: center; }
+        :root { --primary: #07c160; --bg: #f0f2f5; --wx-name: #576b95; }
+        body { font-family: -apple-system, Helvetica, sans-serif; background: var(--bg); margin: 0; padding: 10px; text-align: center; }
         .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         
         .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; font-weight: bold; }
         .tab-btn.active { background: var(--primary); color: white; }
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* 视频预览区核心逻辑 */
-        #video-stage { 
-            position: relative; 
-            width: 100%; 
-            max-width: 320px; 
-            aspect-ratio: 9 / 16; /* 模拟手机屏幕比例 */
-            margin: 15px auto; 
-            background: #000; 
-            border-radius: 12px; 
-            overflow: hidden; 
-        }
+        /* --- 纯代码画的微信朋友圈样式 --- */
+        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border-bottom: 1px solid #eee; margin: 20px auto; max-width: 350px; }
+        .wx-avatar { width: 42px; height: 42px; background: #ddd; border-radius: 6px; flex-shrink: 0; overflow: hidden; }
+        .wx-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .wx-content { flex: 1; overflow: hidden; }
+        .wx-name { color: var(--wx-name); font-size: 16px; font-weight: 500; margin-bottom: 8px; }
         
-        /* 视频放在最底层 */
-        #user-video { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-            z-index: 1; 
+        /* 视频容器 */
+        .wx-media { position: relative; width: 85%; border-radius: 4px; overflow: hidden; background: #000; aspect-ratio: 16 / 9; }
+        #user-video { width: 100%; height: 100%; object-fit: cover; display: block; }
+        
+        /* 神奇的黑幕擦除层 */
+        #scratch-cover { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; 
+            background: #111; z-index: 10;
+            /* 设置遮罩向右滑开的动画 */
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0% 100%);
+            transition: clip-path 1.2s ease-in-out; 
         }
+        /* 擦开后的状态：把遮罩切到最右边消失 */
+        .erased { clip-path: polygon(100% 0, 100% 0, 100% 100%, 100% 100%) !important; }
 
-        /* 朋友圈截图放在顶层，负责执行擦除动画 */
-        #moments-mask { 
-            position: absolute; 
-            top: 0; 
-            left: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: contain; 
-            background: white;
-            z-index: 10; 
-            transition: transform 1.2s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.8s;
-            transform-origin: left;
-        }
+        .wx-footer { color: #b2b2b2; font-size: 13px; margin-top: 10px; }
 
-        /* 动画触发样式：向右滑开并淡出 */
-        .mask-erased { 
-            transform: scaleX(1.5) translateX(100%); 
-            opacity: 0;
-        }
-
-        .btn { background: var(--primary); color: white; padding: 12px 24px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.2s; }
+        .btn { background: var(--primary); color: white; padding: 12px 24px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 80%; transition: 0.2s; }
         .btn:active { transform: scale(0.95); }
-        .btn-sub { background: #576b95; font-size: 13px; padding: 8px 15px; width: 80%; }
 
+        /* 九宫格样式保留 */
         #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; background: #eee; padding: 5px; }
         .img-unit { position: relative; }
         .img-unit img { width: 100%; display: block; }
@@ -80,21 +64,26 @@
         </div>
 
         <div id="tab-video" class="content-section">
-            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
-                <input type="file" id="maskInput" accept="image/*" style="display:none">
-                <button class="btn btn-sub" onclick="document.getElementById('maskInput').click()">步骤1：上传朋友圈截图</button>
-                
-                <input type="file" id="videoInput" accept="video/*" style="display:none">
-                <button class="btn btn-sub" style="background:#333" onclick="document.getElementById('videoInput').click()">步骤2：上传背景短视频</button>
+            <input type="file" id="videoInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#333; margin-bottom: 10px;" onclick="document.getElementById('videoInput').click()">🚀 一键上传短视频</button>
+            <p style="font-size: 12px; color: #888;">上传后自动套用朋友圈模板并播放特效</p>
+            
+            <div class="wx-post">
+                <div class="wx-avatar">
+                    <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" alt="头像">
+                </div>
+                <div class="wx-content">
+                    <div class="wx-name">那个Ta ✨</div>
+                    <div class="wx-media">
+                        <video id="user-video" loop muted playsinline></video>
+                        <div id="scratch-cover"></div>
+                    </div>
+                    <div class="wx-footer">1分钟前</div>
+                </div>
             </div>
             
-            <div id="video-stage">
-                <img id="moments-mask" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
-                <video id="user-video" loop muted playsinline></video>
-            </div>
-            
-            <button class="btn" style="width:100%;" onclick="runErase()">✨ 预览擦开效果</button>
-            <p style="color:#999; font-size:12px;">预览时使用手机录屏即可导出视频</p>
+            <button class="btn" style="width: 80%;" onclick="runErase()">🔄 再看一次特效</button>
+            <p style="color:#ff5000; font-size:12px; margin-top:10px;">提示：播放时直接用手机录屏即可导出！</p>
         </div>
     </div>
 
@@ -106,7 +95,7 @@
             document.getElementById('btn-' + id).classList.add('active');
         }
 
-        // --- 九宫格切割代码（修复变量引用错误） ---
+        // --- 九宫格切割代码（完全保留且修复） ---
         document.getElementById('imageInput').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -121,9 +110,9 @@
                     const startY = (img.height - size*3)/2;
                     for(let i=0; i<9; i++) {
                         const canvas = document.createElement('canvas');
-                        canvas.width = canvas.height = 1000; // 统一高质量
+                        canvas.width = canvas.height = 800; // 保证清晰度
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX + (i%3)*size, startY + Math.floor(i/3)*size, size, size, 0, 0, 1000, 1000);
+                        ctx.drawImage(img, startX + (i%3)*size, startY + Math.floor(i/3)*size, size, size, 0, 0, 800, 800);
                         const data = canvas.toDataURL("image/jpeg", 0.9);
                         const unit = document.createElement('div');
                         unit.className = 'img-unit';
@@ -136,35 +125,31 @@
             reader.readAsDataURL(file);
         };
 
-        // --- 视频擦开代码 ---
-        const maskImg = document.getElementById('moments-mask');
+        // --- 视频自动化擦开代码 ---
         const v = document.getElementById('user-video');
-
-        document.getElementById('maskInput').onchange = function(e) {
-            if(e.target.files[0]) {
-                maskImg.src = URL.createObjectURL(e.target.files[0]);
-                maskImg.classList.remove('mask-erased'); // 上传新图时重置状态
-            }
-        };
+        const cover = document.getElementById('scratch-cover');
 
         document.getElementById('videoInput').onchange = function(e) {
             if(e.target.files[0]) {
                 v.src = URL.createObjectURL(e.target.files[0]);
-                v.onloadedmetadata = () => v.play();
-                maskImg.classList.remove('mask-erased');
+                // 视频加载完成后自动触发动画
+                v.onloadedmetadata = () => {
+                    runErase();
+                };
             }
         };
 
         function runErase() {
-            // 先重置
-            maskImg.classList.remove('mask-erased');
+            // 1. 重置黑幕和视频
+            cover.classList.remove('erased');
             v.currentTime = 0;
-            v.play();
+            v.pause();
             
-            // 强制浏览器重绘后再执行动画
+            // 2. 稍微延迟一下，确保黑幕盖好了，然后再开始播放并擦除
             setTimeout(() => {
-                maskImg.classList.add('mask-erased');
-            }, 100);
+                v.play();
+                cover.classList.add('erased');
+            }, 300);
         }
     </script>
 </body>
