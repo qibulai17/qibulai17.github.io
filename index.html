@@ -15,93 +15,78 @@
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* --- 纯代码画的微信朋友圈 --- */
-        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border-bottom: 1px solid #eee; margin: 20px auto; max-width: 400px; }
-        .wx-avatar { width: 42px; height: 42px; background: #ddd; border-radius: 6px; flex-shrink: 0; overflow: hidden; }
-        .wx-avatar img { width: 100%; height: 100%; object-fit: cover; }
-        .wx-content { flex: 1; overflow: hidden; }
+        /* --- 微信朋友圈排版 --- */
+        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border-bottom: 1px solid #eee; margin: 20px auto; max-width: 100%; box-sizing: border-box;}
+        .wx-avatar { width: 42px; height: 42px; background: #ddd; border-radius: 6px; flex-shrink: 0; }
+        .wx-content { flex: 1; }
         .wx-name { color: var(--wx-name); font-size: 16px; font-weight: 500; margin-bottom: 8px; }
         
-        /* 视频容器：取消了死板的正方形，现在自适应竖屏和横屏 */
+        /* 视频容器：自适应比例 */
         .wx-media { 
             position: relative; 
-            width: 80%; /* 朋友圈视频通常不占满宽度 */
-            border-radius: 6px; 
-            overflow: hidden; 
+            width: 100%; 
             background: #000; 
+            border-radius: 4px;
+            overflow: hidden;
+            line-height: 0;
         }
         
-        /* 底层：用户真正的视频 */
+        /* 用户视频：保持原始比例显示 */
         #user-video { 
             width: 100%; 
             height: auto; 
-            max-height: 450px; /* 防止竖屏视频太长 */
             display: block; 
-            object-fit: contain; 
         }
         
-        /* 顶层：黑线涂抹特效视频（神级滤镜） */
+        /* 特效模板：强制100%铺满用户视频，不留黑边 */
         #mask-video { 
             position: absolute; 
             top: 0; 
             left: 0; 
-            width: 100%; 
-            height: 100%; 
-            object-fit: fill; 
-            background: white;
-            /* 魔法代码：让黑线变成透明，露出底下的视频！ */
+            width: 100% !important; 
+            height: 100% !important; 
+            object-fit: fill; /* 关键：暴力铺满，消除左右黑边 */
             mix-blend-mode: screen; 
             z-index: 10;
-            pointer-events: none; /* 防止挡住点击 */
+            pointer-events: none;
+            display: none; /* 初始隐藏 */
         }
 
         .wx-footer { color: #b2b2b2; font-size: 13px; margin-top: 10px; }
 
-        .btn { background: var(--primary); color: white; padding: 12px 24px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s; box-sizing: border-box; }
-        .btn:active { transform: scale(0.95); }
-        .btn-sub { background: #f0f2f5; color: #333; font-size: 13px; padding: 10px; margin-bottom: 10px; border: 1px dashed #ccc; }
+        .btn { background: var(--primary); color: white; padding: 12px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn-sub { background: #f8f8f8; color: #666; font-size: 13px; border: 1px dashed #ddd; margin-bottom: 10px; }
 
-        /* 九宫格样式保留 */
         #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; background: #eee; padding: 5px; }
-        .img-unit { position: relative; }
         .img-unit img { width: 100%; display: block; }
-        .dl { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 4px; border-radius: 3px; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="card">
         <h3>📸 朋友圈全能工具箱</h3>
         <div class="tabs">
-            <button class="tab-btn active" id="btn-cut" onclick="showTab('cut')">九宫格切割</button>
-            <button class="tab-btn" id="btn-video" onclick="showTab('video')">高级擦开特效</button>
+            <button class="tab-btn active" onclick="showTab('cut')">九宫格切割</button>
+            <button class="tab-btn" onclick="showTab('video')">高级擦开特效</button>
         </div>
 
         <div id="tab-cut" class="content-section active">
             <input type="file" id="imageInput" accept="image/*" style="display:none">
-            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片开始切割</button>
+            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片切割</button>
             <div id="grid-container"></div>
         </div>
 
         <div id="tab-video" class="content-section">
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
-                <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">
-                    1. 上传特效模板 (你发我的那个黑线视频)
-                </button>
-                
-                <input type="file" id="userVideoInput" accept="video/*" style="display:none">
-                <button class="btn" style="background:#333;" onclick="document.getElementById('userVideoInput').click()">
-                    2. 上传你要发朋友圈的短视频
-                </button>
-            </div>
+            <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
+            <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">1. 上传特效模板视频</button>
+            
+            <input type="file" id="userVideoInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#333;" onclick="document.getElementById('userVideoInput').click()">2. 上传你要发的短视频</button>
             
             <div class="wx-post">
-                <div class="wx-avatar">
-                    <img src="https://api.dicebear.com/7.x/adventurer/svg?seed=Felix" alt="头像">
-                </div>
+                <div class="wx-avatar"><img src="https://api.dicebear.com/7.x/pixel-art/svg?seed=1" style="width:100%"></div>
                 <div class="wx-content">
-                    <div class="wx-name">那个Ta ✨</div>
-                    <div class="wx-media">
+                    <div class="wx-name">朋友圈特效达人</div>
+                    <div class="wx-media" id="media-box">
                         <video id="user-video" loop muted playsinline></video>
                         <video id="mask-video" loop muted playsinline></video>
                     </div>
@@ -109,8 +94,7 @@
                 </div>
             </div>
             
-            <button class="btn" style="background: var(--primary); margin-top: 10px;" onclick="runErase()">🔄 播放融合特效</button>
-            <p style="color:#ff5000; font-size:12px; margin-top:10px;">提示：特效播放时，直接用手机录屏即可导出高级感视频！</p>
+            <button class="btn" onclick="runErase()">🔄 开始/重播特效</button>
         </div>
     </div>
 
@@ -119,13 +103,35 @@
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.getElementById('tab-' + id).classList.add('active');
-            document.getElementById('btn-' + id).classList.add('active');
+            event.currentTarget.classList.add('active');
         }
 
-        // --- 九宫格切割代码保留 ---
+        const uv = document.getElementById('user-video');
+        const mv = document.getElementById('mask-video');
+
+        document.getElementById('maskVideoInput').onchange = function(e) {
+            if(e.target.files[0]) {
+                mv.src = URL.createObjectURL(e.target.files[0]);
+                mv.style.display = 'block';
+            }
+        };
+
+        document.getElementById('userVideoInput').onchange = function(e) {
+            if(e.target.files[0]) {
+                uv.src = URL.createObjectURL(e.target.files[0]);
+                uv.onloadedmetadata = () => runErase();
+            }
+        };
+
+        function runErase() {
+            if (!uv.src || !mv.src) return alert("请先上传模板和视频！");
+            uv.currentTime = 0; mv.currentTime = 0;
+            uv.play(); mv.play();
+        }
+
+        // 九宫格逻辑
         document.getElementById('imageInput').onchange = function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            const file = e.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const img = new Image();
@@ -133,63 +139,19 @@
                     const grid = document.getElementById('grid-container');
                     grid.innerHTML = '';
                     const size = Math.min(img.width/3, img.height/3);
-                    const startX = (img.width - size*3)/2;
-                    const startY = (img.height - size*3)/2;
                     for(let i=0; i<9; i++) {
                         const canvas = document.createElement('canvas');
-                        canvas.width = canvas.height = 800; 
+                        canvas.width = canvas.height = 800;
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, startX + (i%3)*size, startY + Math.floor(i/3)*size, size, size, 0, 0, 800, 800);
-                        const data = canvas.toDataURL("image/jpeg", 0.9);
-                        const unit = document.createElement('div');
-                        unit.className = 'img-unit';
-                        unit.innerHTML = `<img src="${data}"><a href="${data}" download="cut_${i}.jpg" class="dl">保存</a>`;
-                        grid.appendChild(unit);
+                        ctx.drawImage(img, (i%3)*size, Math.floor(i/3)*size, size, size, 0, 0, 800, 800);
+                        const data = canvas.toDataURL("image/jpeg");
+                        grid.innerHTML += `<div class="img-unit"><img src="${data}"></div>`;
                     }
                 };
                 img.src = ev.target.result;
             };
             reader.readAsDataURL(file);
         };
-
-        // --- 视频自动化融合擦开代码 ---
-        const uv = document.getElementById('user-video');
-        const mv = document.getElementById('mask-video');
-
-        // 1. 加载黑线擦除视频模板
-        document.getElementById('maskVideoInput').onchange = function(e) {
-            if(e.target.files[0]) {
-                mv.src = URL.createObjectURL(e.target.files[0]);
-                mv.load();
-            }
-        };
-
-        // 2. 加载用户的真实视频
-        document.getElementById('userVideoInput').onchange = function(e) {
-            if(e.target.files[0]) {
-                uv.src = URL.createObjectURL(e.target.files[0]);
-                uv.load();
-                // 视频加载完后自动播放特效
-                uv.onloadedmetadata = () => {
-                    runErase();
-                };
-            }
-        };
-
-        // 同步播放两个视频，触发魔法
-        function runErase() {
-            if (!uv.src || !mv.src) {
-                alert("请先上传【特效模板】和【你要发的视频】哦！");
-                return;
-            }
-            // 让两个视频回到开头
-            uv.currentTime = 0;
-            mv.currentTime = 0;
-            
-            // 同时播放
-            uv.play();
-            mv.play();
-        }
     </script>
 </body>
 </html>
