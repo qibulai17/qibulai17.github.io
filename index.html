@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈工具箱-微信稳定版</title>
+    <title>朋友圈全能工具箱-微信直存版</title>
     <style>
         :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
         .card { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
         .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; }
         .btn:disabled { background: #ccc; }
-        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; }
+        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; position: relative; }
         video { width: 100%; display: block; }
         .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; }
         input[type=range] { width: 100%; accent-color: var(--primary); }
         #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; font-weight: bold; }
+        .save-tip { background: #fffbe6; border: 1px solid #ffe58f; padding: 10px; border-radius: 10px; margin-top: 15px; color: #856404; font-size: 13px; display: none; text-align: center; }
     </style>
 </head>
 <body>
     <div class="card">
         <h2 style="text-align:center; margin-top:0;">🛠️ 朋友圈全能工具箱</h2>
-        <p style="text-align:center; font-size:12px; color:#999;">微信端 5秒 特效修正版</p>
-
+        
         <div id="tab-video">
             <input type="file" id="vidInput" accept="video/*" style="display:none">
             <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传原视频</button>
@@ -31,7 +31,11 @@
             </div>
             
             <div class="video-box" id="r-box" style="display:none; border: 3px solid #07c160;">
-                <video id="v-final" controls playsinline></video>
+                <video id="v-final" controls playsinline loop></video>
+            </div>
+
+            <div class="save-tip" id="save-tip">
+                💡 <b>微信保存技巧：</b><br>长按上方绿框视频，选择“保存视频”或“发送给朋友”即可。
             </div>
 
             <div class="control-box" id="v-ctrl" style="display:none;">
@@ -41,7 +45,6 @@
 
             <p id="status-txt"></p>
             <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始合成 5秒特效</button>
-            <button class="btn" id="download-btn" style="display:none; background:#1485ee;">⬇️ 3. 保存视频</button>
         </div>
     </div>
 
@@ -56,8 +59,8 @@
         const ctx = cvs.getContext('2d');
         const trimRange = document.getElementById('trimRange');
         const gBtn = document.getElementById('gen-btn');
-        const dBtn = document.getElementById('download-btn');
         const statusTxt = document.getElementById('status-txt');
+        const saveTip = document.getElementById('save-tip');
 
         document.getElementById('vidInput').onchange = (e) => {
             const file = e.target.files[0];
@@ -67,6 +70,9 @@
             document.getElementById('p-box').style.display = 'block';
             document.getElementById('v-ctrl').style.display = 'block';
             gBtn.style.display = 'block';
+            vFinal.src = "";
+            document.getElementById('r-box').style.display = 'none';
+            saveTip.style.display = 'none';
             vPreview.onloadedmetadata = () => {
                 trimRange.max = Math.max(0, vPreview.duration - 5.1).toFixed(1);
             };
@@ -79,74 +85,60 @@
 
         async function processVideo() {
             gBtn.disabled = true;
-            statusTxt.innerText = "⏳ 正在锁定帧率合成 (约需10秒)...";
+            statusTxt.innerText = "⏳ 正在合成，完成后直接长按视频保存...";
             
-            // 降低分辨率提升流畅度 (如果是高清视频，适当缩小)
-            const scale = vPreview.videoWidth > 1080 ? 0.7 : 1;
+            const scale = vPreview.videoWidth > 1080 ? 0.6 : 0.8; 
             cvs.width = vPreview.videoWidth * scale;
             cvs.height = vPreview.videoHeight * scale;
 
-            let type = 'video/webm;codecs=vp8';
-            if (!MediaRecorder.isTypeSupported(type)) type = 'video/mp4';
+            // 微信兼容性最好的类型
+            let type = 'video/mp4';
+            if (!MediaRecorder.isTypeSupported(type)) type = 'video/webm';
             
-            // 锁定 30 帧，确保不卡顿
             const stream = cvs.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6000000 });
+            const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 5000000 });
             const chunks = [];
 
             recorder.ondataavailable = (e) => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: type });
-                vFinal.src = URL.createObjectURL(blob);
+                const videoURL = URL.createObjectURL(blob);
+                vFinal.src = videoURL;
+                
                 document.getElementById('p-box').style.display = 'none';
                 document.getElementById('r-box').style.display = 'block';
-                statusTxt.innerText = "✅ 合成成功！请直接下载查看结果。";
-                dBtn.style.display = 'block';
-                dBtn.onclick = () => {
-                    const a = document.createElement('a');
-                    a.href = vFinal.src;
-                    a.download = 'fx_video.mp4';
-                    a.click();
-                };
+                saveTip.style.display = 'block';
+                statusTxt.innerText = "✅ 合成成功！";
+                gBtn.disabled = false;
             };
 
             const startPoint = parseFloat(trimRange.value);
             vPreview.currentTime = startPoint;
             vMask.currentTime = 0;
             
-            // 微信端核心优化：强制等待视频播放准备就绪
             await vPreview.play();
             await vMask.play();
             recorder.start();
 
             const startTime = Date.now();
-            const duration = 5000; // 严格锁定 5000 毫秒
-
-            function drawFrame() {
-                const now = Date.now();
-                const elapsed = now - startTime;
-
-                if (elapsed >= duration || vPreview.ended) {
+            function draw() {
+                const elapsed = Date.now() - startTime;
+                if (elapsed >= 5000 || vPreview.ended) {
                     recorder.stop();
                     vPreview.pause();
                     vMask.pause();
                     return;
                 }
-
-                // 手动处理 MASK 循环，防止 4秒处断掉
                 if (vMask.currentTime > 3.8) vMask.currentTime = 0;
 
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(vPreview, 0, 0, cvs.width, cvs.height);
-                
-                // 使用更轻量级的滤色叠加方式
                 ctx.globalCompositeOperation = 'lighten'; 
                 ctx.drawImage(vMask, 0, 0, cvs.width, cvs.height);
-                
-                requestAnimationFrame(drawFrame);
+                requestAnimationFrame(draw);
             }
-            drawFrame();
+            draw();
         }
     </script>
 </body>
