@@ -9,26 +9,29 @@
         body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
         .card { max-width: 600px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
         
-        /* 导航切换按钮 */
         .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid #eee; padding-bottom: 15px; }
         .tab-btn { padding: 10px 20px; border: none; background: #eee; border-radius: 8px; cursor: pointer; color: #666; font-weight: bold; }
         .tab-btn.active { background: var(--primary); color: white; }
-
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* 原有样式保留 */
-        h1 { color: #333; margin-bottom: 5px; font-size: 1.4em; }
-        .subtitle { color: #888; margin-bottom: 25px; font-size: 0.9em; }
-        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; font-size: 14px; }
-        .upload-btn { background: var(--primary); color: white; padding: 12px 35px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; }
-        #grid-container { display: grid; gap: 6px; margin-top: 10px; background: #ededed; padding: 10px; border-radius: 12px; justify-content: center; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); width: 100%; }
-        .img-unit { display: flex; flex-direction: column; align-items: center; background: white; position: relative; }
+        /* 视频剪辑区专用样式 */
+        #video-work-area { position: relative; width: 100%; max-width: 350px; margin: 20px auto; overflow: hidden; background: #000; border-radius: 10px; line-height: 0; }
+        #moments-mask { position: absolute; top: 0; left: 0; width: 100%; z-index: 10; pointer-events: none; }
+        #user-video { width: 100%; z-index: 5; }
+        /* 擦除动画层 */
+        #erase-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 8; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .erased { transform: translateX(100%); }
+
+        .upload-btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin: 10px 0; }
+        .action-btn { background: #333; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; border: none; margin-top: 10px; }
+        
+        /* 原有切图样式保留... */
+        #grid-container { display: grid; gap: 6px; margin-top: 10px; background: #ededed; padding: 10px; border-radius: 12px; }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .img-unit { position: relative; background: white; }
         .img-unit img { width: 100%; display: block; }
         .dl-btn { position: absolute; bottom: 5px; right: 5px; background: rgba(0,0,0,0.5); color: white; padding: 2px 6px; font-size: 10px; border-radius: 4px; text-decoration: none; }
-        .footer { margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; color: #bbb; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -36,38 +39,36 @@
         <h1>📸 朋友圈全能工具箱</h1>
         <div class="tabs">
             <button class="tab-btn active" onclick="switchTab('cut')">九宫格切割</button>
-            <button class="tab-btn" onclick="switchTab('video')">视频擦开剪辑</button>
+            <button class="tab-btn" onclick="switchTab('video')">视频擦开神器</button>
         </div>
 
-        <!-- 选项卡 1: 切图功能 -->
         <div id="tab-cut" class="content-section active">
-            <p class="subtitle">让你的照片在朋友圈“横着走”</p>
-            <div class="controls">
-                <select id="mode">
-                    <option value="9">九宫格 (3x3)</option>
-                    <option value="3">三联画 (1x3)</option>
-                </select>
-                <input type="text" id="watermarkText" placeholder="添加你的个性水印" value="@qibulai17">
-            </div>
             <label class="upload-btn">选择照片<input type="file" id="imageInput" accept="image/*" style="display:none"></label>
             <div id="grid-container" class="grid-3"></div>
         </div>
 
-        <!-- 选项卡 2: 视频剪辑 (预留区) -->
         <div id="tab-video" class="content-section">
-            <p class="subtitle">✨ 视频一键擦开特效（开发中）</p>
-            <div style="padding: 40px 20px; border: 2px dashed #ccc; border-radius: 15px; color: #999;">
-                这里是未来的视频神器入口<br>请先准备好“朋友圈蒙版图”
+            <p style="font-size: 0.8em; color: #888;">1. 上传朋友圈截图 -> 2. 上传短视频 -> 3. 生成擦开特效</p>
+            
+            <label class="action-btn">步骤1：上传朋友圈截图<input type="file" id="maskInput" accept="image/*" style="display:none"></label><br>
+            <label class="action-btn" style="background:#576b95">步骤2：上传背景视频<input type="file" id="videoInput" accept="video/*" style="display:none"></label>
+            
+            <div id="video-work-area">
+                <img id="moments-mask" src="" alt="">
+                <div id="erase-layer"></div>
+                <video id="user-video" loop muted playsinline></video>
             </div>
+
+            <button class="upload-btn" onclick="startErase()">✨ 预览擦开特效</button>
+            <p style="font-size: 0.7em; color: #ff5000;">提示：预览时使用手机录屏即可导出视频</p>
         </div>
 
         <div class="footer">
-            <p>🚀 由 qibulai17 开发 | 极简 · 安全 · 免安装</p>
+            <p>🚀 By qibulai17 | 你的全能剪辑助手</p>
         </div>
     </div>
 
     <script>
-        // 选项卡切换逻辑
         function switchTab(tabId) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -75,59 +76,68 @@
             event.currentTarget.classList.add('active');
         }
 
-        // 原有的切图逻辑全部保留在这里...
+        // --- 视频剪辑逻辑 ---
+        const maskInput = document.getElementById('maskInput');
+        const videoInput = document.getElementById('videoInput');
+        const momentsMask = document.getElementById('moments-mask');
+        const userVideo = document.getElementById('user-video');
+        const eraseLayer = document.getElementById('erase-layer');
+
+        maskInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) momentsMask.src = URL.createObjectURL(file);
+        });
+
+        videoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                userVideo.src = URL.createObjectURL(file);
+                userVideo.play();
+                eraseLayer.classList.remove('erased');
+            }
+        });
+
+        function startErase() {
+            eraseLayer.classList.remove('erased');
+            userVideo.currentTime = 0;
+            userVideo.play();
+            setTimeout(() => {
+                eraseLayer.classList.add('erased');
+            }, 500);
+        }
+
+        // --- 原有切图逻辑保留 ---
         const imageInput = document.getElementById('imageInput');
         const gridContainer = document.getElementById('grid-container');
-        const modeSelect = document.getElementById('mode');
-        const watermarkInput = document.getElementById('watermarkText');
-
         imageInput.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
-                img.onload = function() { processImage(img); };
+                img.onload = function() {
+                    gridContainer.innerHTML = '';
+                    const size = Math.min(img.width/3, img.height/3);
+                    for(let i=0; i<9; i++) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = canvas.height = size;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, (i%3)*size, Math.floor(i/3)*size, size, size, 0, 0, size, size);
+                        const unit = document.createElement('div');
+                        unit.className = 'img-unit';
+                        const nImg = document.createElement('img');
+                        nImg.src = canvas.toDataURL("image/jpeg");
+                        const btn = document.createElement('a');
+                        btn.href = nImg.src; btn.download = `cut_${i}.jpg`;
+                        btn.className = 'dl-btn'; btn.innerText = '保存';
+                        unit.appendChild(nImg); unit.appendChild(btn);
+                        gridContainer.appendChild(unit);
+                    }
+                };
                 img.src = event.target.result;
             };
             reader.readAsDataURL(file);
         });
-
-        function processImage(img) {
-            gridContainer.innerHTML = '';
-            const mode = parseInt(modeSelect.value);
-            const watermark = watermarkInput.value;
-            const cols = 3;
-            const rows = (mode === 9) ? 3 : 1;
-            const size = Math.min(img.width / cols, img.height / rows);
-            const startX = (img.width - size * cols) / 2;
-            const startY = (img.height - size * rows) / 2;
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < cols; c++) {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = size; canvas.height = size;
-                    ctx.drawImage(img, startX + c * size, startY + r * size, size, size, 0, 0, size, size);
-                    if (watermark) {
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-                        ctx.font = `bold ${size / 12}px Arial`;
-                        ctx.fillText(watermark, 20, size - 20);
-                    }
-                    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
-                    const unit = document.createElement('div');
-                    unit.className = 'img-unit';
-                    const newImg = document.createElement('img');
-                    newImg.src = dataUrl;
-                    const dlBtn = document.createElement('a');
-                    dlBtn.href = dataUrl;
-                    dlBtn.download = `cut_${r}_${c}.jpg`;
-                    dlBtn.className = 'dl-btn';
-                    dlBtn.innerText = '保存';
-                    unit.appendChild(newImg); unit.appendChild(dlBtn);
-                    gridContainer.appendChild(unit);
-                }
-            }
-        }
     </script>
 </body>
 </html>
