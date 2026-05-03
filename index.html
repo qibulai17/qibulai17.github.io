@@ -3,86 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈工具箱 - 保护原片版</title>
+    <title>朋友圈全能工具箱 - 稳定版</title>
     <style>
-        :root { --primary: #07c160; --bg: #f0f2f5; }
+        :root { --primary: #07c160; --bg: #f0f2f5; --wx-name: #576b95; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         
-        /* 微信朋友圈容器 */
-        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border-bottom: 1px solid #eee; margin-top: 20px; }
-        .wx-avatar { width: 42px; height: 42px; background: #ddd; border-radius: 6px; flex-shrink: 0; }
+        /* 选项卡切换样式 */
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 15px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: bold; color: #666; transition: 0.3s; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .content-section { display: none; }
+        .content-section.active { display: block; }
+
+        /* --- 1. 九宫格区域样式 --- */
+        #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; background: #eee; padding: 5px; border-radius: 8px; }
+        .img-unit { position: relative; width: 100%; padding-top: 100%; overflow: hidden; background: #fff; }
+        .img-unit img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+        .dl-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 4px; border-radius: 3px; text-decoration: none; z-index: 5; }
+
+        /* --- 2. 视频特效区域样式 --- */
+        .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border: 1px solid #eee; border-radius: 10px; margin-top: 20px; }
+        .wx-avatar { width: 42px; height: 42px; background: #e0e0e0; border-radius: 6px; flex-shrink: 0; }
         .wx-content { flex: 1; }
-        .wx-name { color: #576b95; font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+        .wx-name { color: var(--wx-name); font-size: 16px; font-weight: 500; margin-bottom: 8px; }
         
-        /* 视频显示区：这个区域的大小由用户视频决定 */
         .wx-media { 
             position: relative; 
             width: 100%; 
             background: #000; 
             border-radius: 4px;
-            overflow: hidden; /* 这一步是为了把模板放大的部分藏起来 */
+            overflow: hidden; 
             line-height: 0;
         }
         
-        /* 用户视频：绝对不裁剪，保持原貌 */
-        #user-video { 
-            width: 100%; 
-            height: auto; /* 高度根据视频比例自动撑开 */
-            display: block; 
-            position: relative;
-            z-index: 1;
-        }
-        
-        /* 特效模板：牺牲自己，铺满全屏 */
+        #user-video { width: 100%; height: auto; display: block; position: relative; z-index: 1; }
         #mask-video { 
             position: absolute; 
-            top: 50%; 
-            left: 50%; 
-            width: 100%;
-            height: 100%;
-            /* 关键：用 cover 模式填满容器，并额外放大 1.2 倍，彻底挤掉模板自带的黑边 */
-            transform: translate(-50%, -50%) scale(1.2); 
+            top: 50%; left: 50%; 
+            width: 100%; height: 100%;
+            transform: translate(-50%, -50%) scale(1.25); /* 暴力放大，彻底挤走黑边 */
             object-fit: cover; 
             mix-blend-mode: screen; 
             z-index: 10;
             pointer-events: none;
-            /* 增强对比度，让模板里的黑色更透，白色更亮 */
             filter: contrast(150%) brightness(110%);
         }
 
-        .btn { background: var(--primary); color: white; padding: 12px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 15px; }
         .btn-sub { background: #f8f8f8; color: #666; font-size: 13px; border: 1px dashed #ddd; margin-bottom: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3 style="margin-top:0">朋友圈特效 - 画面不缩水版</h3>
+        <h3 style="margin-top:0">📸 朋友圈全能工具箱</h3>
         
-        <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
-        <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">1. 上传特效模板视频</button>
-        
-        <input type="file" id="userVideoInput" accept="video/*" style="display:none">
-        <button class="btn" style="background:#333" onclick="document.getElementById('userVideoInput').click()">2. 上传你要发的短视频</button>
-        
-        <div class="wx-post">
-            <div class="wx-avatar"></div>
-            <div class="wx-content">
-                <div class="wx-name">那个Ta ✨</div>
-                <div class="wx-media">
-                    <!-- 底层：你的原片 -->
-                    <video id="user-video" loop muted playsinline></video>
-                    <!-- 顶层：被放大的特效 -->
-                    <video id="mask-video" loop muted playsinline></video>
-                </div>
-                <div style="color:#b2b2b2; font-size:13px; margin-top:8px;">刚刚</div>
+        <div class="tabs">
+            <button class="tab-btn active" id="tab-btn-cut" onclick="showTab('cut')">九宫格切割</button>
+            <button class="tab-btn" id="tab-btn-video" onclick="showTab('video')">高级擦开特效</button>
+        </div>
+
+        <div id="section-cut" class="content-section active">
+            <input type="file" id="imageInput" accept="image/*" style="display:none">
+            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片进行 3x3 切割</button>
+            <div id="grid-container">
+                <p style="color:#999; grid-column: span 3; padding: 40px 0;">等待上传图片...</p>
             </div>
         </div>
-        
-        <button class="btn" onclick="runErase()">🔄 播放预览</button>
+
+        <div id="section-video" class="content-section">
+            <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
+            <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">1. 上传黑白模板视频</button>
+            
+            <input type="file" id="userVideoInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#333" onclick="document.getElementById('userVideoInput').click()">2. 上传你要发的短视频</button>
+            
+            <div class="wx-post">
+                <div class="wx-avatar"></div>
+                <div class="wx-content">
+                    <div class="wx-name">动态预览 ✨</div>
+                    <div class="wx-media">
+                        <video id="user-video" loop muted playsinline></video>
+                        <video id="mask-video" loop muted playsinline></video>
+                    </div>
+                    <div style="color:#b2b2b2; font-size:13px; margin-top:8px;">刚刚</div>
+                </div>
+            </div>
+            
+            <button class="btn" onclick="runErase()">🔄 开始播放预览</button>
+        </div>
     </div>
 
     <script>
+        // 选项卡切换逻辑
+        function showTab(type) {
+            document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById('section-' + type).classList.add('active');
+            document.getElementById('tab-btn-' + type).classList.add('active');
+        }
+
+        // --- 九宫格切割逻辑 ---
+        document.getElementById('imageInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const img = new Image();
+                img.onload = function() {
+                    const grid = document.getElementById('grid-container');
+                    grid.innerHTML = '';
+                    const size = Math.min(img.width / 3, img.height / 3);
+                    const startX = (img.width - size * 3) / 2;
+                    const startY = (img.height - size * 3) / 2;
+
+                    for (let i = 0; i < 9; i++) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = canvas.height = 800; // 高清输出
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, startX + (i % 3) * size, startY + Math.floor(i / 3) * size, size, size, 0, 0, 800, 800);
+                        
+                        const data = canvas.toDataURL("image/jpeg", 0.9);
+                        const unit = document.createElement('div');
+                        unit.className = 'img-unit';
+                        unit.innerHTML = `<img src="${data}"><a href="${data}" download="wx_cut_${i+1}.jpg" class="dl-btn">保存</a>`;
+                        grid.appendChild(unit);
+                    }
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        // --- 视频特效逻辑 ---
         const uv = document.getElementById('user-video');
         const mv = document.getElementById('mask-video');
 
@@ -93,13 +147,12 @@
         document.getElementById('userVideoInput').onchange = (e) => {
             if(e.target.files[0]) {
                 uv.src = URL.createObjectURL(e.target.files[0]);
-                // 当用户视频加载后，自动根据比例显示，不缩放
                 uv.onloadedmetadata = () => runErase();
             }
         };
 
         function runErase() {
-            if (!uv.src || !mv.src) return;
+            if (!uv.src || !mv.src) return alert("请确保模板和视频都已上传！");
             uv.currentTime = 0; mv.currentTime = 0;
             uv.play(); mv.play();
         }
