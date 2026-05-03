@@ -1,12 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>我的第一个网站</title>
+    <title>朋友圈三联画生成器 - By qibulai17</title>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; text-align: center; padding: 20px; background: #f0f2f5; color: #333; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        h2 { color: #07c160; }
+        .upload-area { border: 2px dashed #ddd; padding: 20px; border-radius: 10px; margin: 20px 0; cursor: pointer; }
+        #preview { display: flex; justify-content: space-between; margin-top: 20px; gap: 10px; }
+        canvas { width: 32%; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); background: #eee; }
+        .footer { margin-top: 40px; font-size: 0.9em; color: #666; border-top: 1px solid #eee; padding-top: 20px; }
+        .tips { color: #ff5000; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <h1>你好，世界！</h1>
-    <p>这是我从抖音听说 Gemini 很厉害后，亲手搭建的第一个网页。</p>
-    <p>目前还在建设中...</p>
+    <div class="container">
+        <h2>📸 朋友圈三联画生成器</h2>
+        <p>让你的朋友圈背景图瞬间变高级</p>
+        
+        <div class="upload-area" onclick="document.getElementById('upload').click()">
+            <p>点击这里上传一张精美的大图</p>
+            <input type="file" id="upload" accept="image/*" style="display:none">
+        </div>
+
+        <div id="preview"></div>
+        
+        <div id="result-text" style="margin-top:20px; display:none;">
+            <p class="tips">✨ 切割完成！长按每张图片选择“另存为”即可。</p>
+        </div>
+
+        <div class="footer">
+            <p>🌟 觉得好用？请站长喝瓶矿泉水（1元也是爱）</p>
+            <p style="font-size: 0.8em;">(这里以后可以放你的微信赞赏码图片)</p>
+        </div>
+    </div>
+
+    <script>
+        const upload = document.getElementById('upload');
+        const preview = document.getElementById('preview');
+        const resultText = document.getElementById('result-text');
+
+        upload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = function() {
+                preview.innerHTML = '';
+                const partWidth = img.width / 3;
+                for (let i = 0; i < 3; i++) {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = partWidth;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, i * partWidth, 0, partWidth, img.height, 0, 0, partWidth, img.height);
+                    preview.appendChild(canvas);
+                }
+                resultText.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 </html>
