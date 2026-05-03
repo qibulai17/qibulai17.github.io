@@ -3,17 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3x3 矩阵特效还原版</title>
+    <title>3x3 矩阵切割特效-还原版</title>
     <style>
         body { margin: 0; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
-        .canvas-container { width: 360px; height: 640px; margin-top: 20px; position: relative; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .canvas-container { width: 360px; height: 640px; margin-top: 20px; position: relative; background: #000; }
         canvas { width: 100%; height: 100%; }
         .controls { width: 360px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 15px; }
-        .file-input-group { display: flex; flex-direction: column; gap: 8px; background: #333; padding: 10px; border-radius: 8px; }
-        input[type="range"] { width: 100%; accent-color: #fb7299; }
+        .file-input-group { background: #333; padding: 12px; border-radius: 8px; text-align: center; }
+        input[type="range"] { width: 100%; accent-color: #fb7299; cursor: pointer; }
         button { padding: 15px; background: #fb7299; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
         button:disabled { background: #666; }
-        label { font-size: 14px; color: #aaa; }
+        label { display: block; margin-bottom: 8px; font-size: 14px; color: #fb7299; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -22,27 +22,27 @@
         <canvas id="mainCanvas"></canvas>
     </div>
 
-    <!-- 隐藏的资源 -->
-    <video id="maskVideo" src="mask.mp4" muted playsinline style="display:none;"></video>
-    <video id="sourceVideo" muted playsinline style="display:none;"></video>
+    <!-- 隐藏资源 -->
+    <video id="maskVideo" src="mask.mp4" muted playsinline crossorigin="anonymous" style="display:none;"></video>
+    <video id="sourceVideo" muted playsinline crossorigin="anonymous" style="display:none;"></video>
 
     <div class="controls">
         <div class="file-input-group">
-            <label>1. 导入你的原视频 (要被特效处理的那个)</label>
+            <label>第一步：导入你的 5 秒原视频</label>
             <input type="file" id="uploadSource" accept="video/*">
         </div>
 
         <div class="file-input-group">
-            <label>2. 预览 5 秒特效进度</label>
+            <label>第二步：预览 3x3 切割进度 (0-5s)</label>
             <input type="range" id="previewBar" min="0" max="5" step="0.1" value="0">
-            <div style="display:flex; justify-content: space-between; font-size: 12px;">
+            <div style="display:flex; justify-content: space-between; font-size: 12px; margin-top: 5px;">
                 <span>0.0s</span>
                 <span id="timeVal">0.0s</span>
                 <span>5.0s</span>
             </div>
         </div>
         
-        <button id="exportBtn">生成并下载 5 秒视频</button>
+        <button id="exportBtn">导出 3x3 矩阵特效视频</button>
     </div>
 
     <script>
@@ -55,63 +55,68 @@
         const timeVal = document.getElementById('timeVal');
         const exportBtn = document.getElementById('exportBtn');
 
+        // 设置 9:16 高清画布
         canvas.width = 720;
         canvas.height = 1280;
 
-        // 导入原视频
         uploadSource.onchange = (e) => {
             const file = e.target.files[0];
             if (file) {
                 sourceVideo.src = URL.createObjectURL(file);
-                sourceVideo.load();
+                sourceVideo.onloadedmetadata = () => render();
             }
         };
 
-        // 核心渲染逻辑：还原 3x3 切割
+        // 核心：3x3 矩阵切割与蒙版算法
         function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // 如果没传原视频，先画个黑色背景占位
-            ctx.fillStyle = "black";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (!sourceVideo.src) return;
 
-            if (sourceVideo.readyState >= 2) {
-                // 绘制底层原视频
-                ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+            const grid = 3; // 3x3 切割
+            const cellW = canvas.width / grid;
+            const cellH = canvas.height / grid;
+
+            // 循环绘制 9 个格子
+            for (let row = 0; row < grid; row++) {
+                for (let col = 0; col < grid; col++) {
+                    const x = col * cellW;
+                    const y = row * cellH;
+
+                    ctx.save();
+                    // 1. 创建切割路径
+                    ctx.beginPath();
+                    ctx.rect(x, y, cellW, cellH);
+                    ctx.clip();
+
+                    // 2. 绘制原视频（不拉伸，填满格子）
+                    ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+
+                    // 3. 应用蒙版：根据 mask.mp4 对应位置的黑白度来“擦除”
+                    ctx.globalCompositeOperation = 'destination-out';
+                    // 关键：绘制 maskVideo，它会自动作用于当前被 clip 的格子
+                    ctx.drawImage(maskVideo, 0, 0, canvas.width, canvas.height);
+                    
+                    ctx.restore();
+                }
             }
-
-            // 关键：应用蒙版特效
-            ctx.globalCompositeOperation = 'destination-out'; 
-            
-            // 绘制你的 mask.mp4（这里会保留你 3x3 里的原始比例）
-            // 如果你的 mask.mp4 已经是 3x3 的，它会直接作用于整个画面
-            ctx.drawImage(maskVideo, 0, 0, canvas.width, canvas.height);
-            
-            ctx.globalCompositeOperation = 'source-over';
         }
 
-        // 预览控制
+        // 进度预览同步
         previewBar.oninput = () => {
             const t = parseFloat(previewBar.value);
             maskVideo.currentTime = t;
-            // 让原视频也跟着预览走
-            if (sourceVideo.duration) {
-                sourceVideo.currentTime = t % sourceVideo.duration;
-            }
+            if (sourceVideo.duration) sourceVideo.currentTime = t % sourceVideo.duration;
             timeVal.innerText = t.toFixed(1) + 's';
         };
 
         maskVideo.onseeked = render;
         sourceVideo.onseeked = render;
 
-        // 导出逻辑
+        // 导出 5 秒视频
         exportBtn.onclick = async () => {
-            if (!sourceVideo.src) {
-                alert("请先导入你的原视频！");
-                return;
-            }
+            if (!sourceVideo.src) return alert("请先上传原视频！");
             exportBtn.disabled = true;
-            exportBtn.innerText = "正在导出 5 秒视频...";
+            exportBtn.innerText = "录制中...";
 
             const chunks = [];
             const stream = canvas.captureStream(30);
@@ -122,15 +127,14 @@
                 const blob = new Blob(chunks, { type: 'video/mp4' });
                 const a = document.createElement('a');
                 a.href = URL.createObjectURL(blob);
-                a.download = "3x3_Effect_Result.mp4";
+                a.download = "3x3_result.mp4";
                 a.click();
                 exportBtn.disabled = false;
-                exportBtn.innerText = "生成并下载 5 秒视频";
+                exportBtn.innerText = "导出 3x3 矩阵特效视频";
             };
 
             maskVideo.currentTime = 0;
             sourceVideo.currentTime = 0;
-            
             recorder.start();
             maskVideo.play();
             sourceVideo.play();
