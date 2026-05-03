@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>朋友圈全能工具箱 - 支持长按下载</title>
+    <title>朋友圈工具箱 - 极速合成版</title>
     <style>
-        :root { --primary: #07c160; --bg: #f0f2f5; --wx-name: #576b95; }
+        :root { --primary: #07c160; --bg: #f0f2f5; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; }
         .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); text-align: center; }
         
@@ -15,160 +15,160 @@
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* 九宫格样式 */
-        #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; background: #eee; padding: 5px; border-radius: 8px; }
-        .img-unit { position: relative; width: 100%; padding-top: 100%; overflow: hidden; background: #fff; }
-        .img-unit img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
-        .dl-btn { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; font-size: 10px; padding: 2px 4px; border-radius: 3px; text-decoration: none; }
-
-        /* 视频预览区 */
+        /* 视频容器 */
         .wx-post { display: flex; gap: 10px; text-align: left; padding: 15px; background: white; border: 1px solid #eee; border-radius: 10px; margin-top: 20px; }
-        .wx-avatar { width: 42px; height: 42px; background: #e0e0e0; border-radius: 6px; flex-shrink: 0; }
+        .wx-avatar { width: 42px; height: 42px; background: #e0e0e0; border-radius: 6px; }
         .wx-content { flex: 1; }
-        .wx-name { color: var(--wx-name); font-size: 16px; font-weight: 500; margin-bottom: 8px; }
+        .wx-media { position: relative; width: 100%; background: #000; border-radius: 4px; overflow: hidden; min-height: 150px; }
+        #final-video { width: 100%; height: auto; display: none; z-index: 20; }
         
-        /* 核心展示区：显示最终生成的视频 */
-        .wx-media { position: relative; width: 100%; background: #000; border-radius: 4px; overflow: hidden; line-height: 0; min-height: 100px; }
-        #final-video { width: 100%; height: auto; display: none; z-index: 20; position: relative; }
-        
-        /* 录制时的临时画面 */
-        #recording-canvas { display: none; }
-        .loading-tip { font-size: 12px; color: #ff5000; margin: 10px 0; display: none; }
+        /* 进度条样式 */
+        .progress-box { margin: 15px 0; display: none; }
+        .progress-bar { width: 100%; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: var(--primary); transition: width 0.1s; }
+        #status-text { font-size: 12px; color: #666; margin-top: 5px; }
 
-        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 15px; }
-        .btn-sub { background: #f8f8f8; color: #666; font-size: 13px; border: 1px dashed #ddd; margin-bottom: 10px; }
+        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
+        .btn:disabled { background: #ccc; cursor: not-allowed; }
+        
+        #recording-canvas { display: none; }
+        #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; }
+        .img-unit img { width: 100%; display: block; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h3 style="margin-top:0">📸 朋友圈工具箱 (支持长按下载)</h3>
+        <h3>📸 朋友圈全能工具箱</h3>
         
         <div class="tabs">
-            <button class="tab-btn active" onclick="showTab('cut')">九宫格切割</button>
-            <button class="tab-btn" onclick="showTab('video')">视频擦开生成</button>
+            <button class="tab-btn active" onclick="showTab('cut')">九宫格</button>
+            <button class="tab-btn" onclick="showTab('video')">视频擦开</button>
         </div>
 
         <div id="section-cut" class="content-section active">
             <input type="file" id="imageInput" accept="image/*" style="display:none">
-            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片</button>
+            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片切割</button>
             <div id="grid-container"></div>
         </div>
 
         <div id="section-video" class="content-section">
-            <input type="file" id="maskVideoInput" accept="video/*" style="display:none">
-            <button class="btn btn-sub" onclick="document.getElementById('maskVideoInput').click()">1. 上传黑白模板</button>
+            <input type="file" id="maskInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#576b95" onclick="document.getElementById('maskInput').click()">1. 上传擦除模板</button>
             
-            <input type="file" id="userVideoInput" accept="video/*" style="display:none">
-            <button class="btn" style="background:#333" onclick="document.getElementById('userVideoInput').click()">2. 上传你的视频</button>
-            
-            <div class="loading-tip" id="status-text">⏳ 正在合成视频，请稍候...</div>
+            <input type="file" id="userInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#333" onclick="document.getElementById('userInput').click()">2. 上传你的原视频</button>
+
+            <div class="progress-box" id="p-box">
+                <div class="progress-bar"><div class="progress-fill" id="p-fill"></div></div>
+                <div id="status-text">准备合成中...</div>
+            </div>
 
             <div class="wx-post">
                 <div class="wx-avatar"></div>
                 <div class="wx-content">
-                    <div class="wx-name">预览生成结果 ✨</div>
-                    <div class="wx-media" id="media-container">
+                    <div style="color:#576b95; font-weight:bold; margin-bottom:5px;">预览生成结果 ✨</div>
+                    <div class="wx-media">
                         <video id="final-video" controls playsinline></video>
-                        <p id="placeholder" style="color:#666; font-size:12px; padding:40px 10px; text-align:center;">上传视频后点击下方按钮生成</p>
+                        <div id="placeholder" style="color:#999; font-size:12px; padding:60px 0; text-align:center;">
+                            上传后点击下方按钮生成<br>(生成后可长按保存)
+                        </div>
                     </div>
-                    <div style="color:#b2b2b2; font-size:13px; margin-top:8px;">刚刚</div>
                 </div>
             </div>
             
-            <button class="btn" id="start-btn" onclick="startProcessing()">🚀 生成可下载视频</button>
-            <p style="font-size: 11px; color: #999; margin-top: 10px;">生成成功后，直接【长按视频】即可保存到相册</p>
+            <button class="btn" id="gen-btn" onclick="processVideo()">🚀 立即合成预览视频</button>
         </div>
     </div>
 
     <canvas id="recording-canvas"></canvas>
-    <video id="v-user" style="display:none" muted loop playsinline></video>
-    <video id="v-mask" style="display:none" muted loop playsinline></video>
+    <video id="v-u" style="display:none" muted playsinline></video>
+    <video id="v-m" style="display:none" muted playsinline></video>
 
     <script>
-        function showTab(type) {
+        function showTab(t) {
             document.querySelectorAll('.content-section').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('section-' + type).classList.add('active');
+            document.getElementById('section-' + t).classList.add('active');
             event.currentTarget.classList.add('active');
         }
 
-        const vUser = document.getElementById('v-user');
-        const vMask = document.getElementById('v-mask');
-        const canvas = document.getElementById('recording-canvas');
-        const ctx = canvas.getContext('2d');
-        const finalVideo = document.getElementById('final-video');
-        const startBtn = document.getElementById('start-btn');
-        const statusText = document.getElementById('status-text');
+        const vU = document.getElementById('v-u');
+        const vM = document.getElementById('v-m');
+        const cvs = document.getElementById('recording-canvas');
+        const ctx = cvs.getContext('2d');
+        const fV = document.getElementById('final-video');
+        const gBtn = document.getElementById('gen-btn');
+        const pBox = document.getElementById('p-box');
+        const pFill = document.getElementById('p-fill');
+        const sTxt = document.getElementById('status-text');
 
-        // 上传处理
-        document.getElementById('maskVideoInput').onchange = (e) => {
-            if(e.target.files[0]) vMask.src = URL.createObjectURL(e.target.files[0]);
-        };
-        document.getElementById('userVideoInput').onchange = (e) => {
-            if(e.target.files[0]) vUser.src = URL.createObjectURL(e.target.files[0]);
-        };
+        document.getElementById('maskInput').onchange = (e) => vM.src = URL.createObjectURL(e.target.files[0]);
+        document.getElementById('userInput').onchange = (e) => vU.src = URL.createObjectURL(e.target.files[0]);
 
-        // 核心：合成并录制视频
-        async function startProcessing() {
-            if (!vUser.src || !vMask.src) return alert("请先上传模板和视频！");
+        async function processVideo() {
+            if (!vU.src || !vM.src) return alert("素材不全！");
             
-            startBtn.disabled = true;
-            statusText.style.display = 'block';
+            gBtn.disabled = true;
+            pBox.style.display = 'block';
+            fV.style.display = 'none';
             document.getElementById('placeholder').style.display = 'none';
 
-            // 设置画布大小为用户视频大小
-            canvas.width = vUser.videoWidth;
-            canvas.height = vUser.videoHeight;
+            // 等待元数据加载获取宽高
+            if (vU.videoWidth === 0) await new Promise(r => vU.onloadedmetadata = r);
+            
+            cvs.width = vU.videoWidth;
+            cvs.height = vU.videoHeight;
 
-            const stream = canvas.captureStream(30);
-            const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+            // 尝试多种编码格式，增强手机兼容性
+            let mime = 'video/webm;codecs=vp9';
+            if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm';
+            if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/mp4';
+
+            const stream = cvs.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType: mime });
             const chunks = [];
 
             recorder.ondataavailable = (e) => chunks.push(e.data);
             recorder.onstop = () => {
-                const blob = new Blob(chunks, { type: 'video/mp4' });
-                finalVideo.src = URL.createObjectURL(blob);
-                finalVideo.style.display = 'block';
-                statusText.innerText = "✅ 生成成功！长按下方视频保存";
-                startBtn.disabled = false;
+                const blob = new Blob(chunks, { type: mime.includes('mp4') ? 'video/mp4' : 'video/webm' });
+                fV.src = URL.createObjectURL(blob);
+                fV.style.display = 'block';
+                pBox.style.display = 'none';
+                gBtn.disabled = false;
+                alert("生成完毕！长按视频保存。");
             };
 
-            // 同步播放
-            vUser.currentTime = 0;
-            vMask.currentTime = 0;
-            await vUser.play();
-            await vMask.play();
+            vU.currentTime = 0; vM.currentTime = 0;
+            await vU.play(); await vM.play();
             recorder.start();
 
-            // 循环绘制
-            function drawFrame() {
-                if (vUser.paused || vUser.ended) {
+            function draw() {
+                if (vU.paused || vU.ended) {
                     recorder.stop();
-                    vUser.pause();
-                    vMask.pause();
                     return;
                 }
 
-                // 1. 画底层 (用户视频)
+                // 进度计算
+                const progress = (vU.currentTime / vU.duration) * 100;
+                pFill.style.width = progress + '%';
+                sTxt.innerText = `正在揉合画面... ${Math.round(progress)}%`;
+
+                // 渲染画面
                 ctx.globalCompositeOperation = 'source-over';
-                ctx.drawImage(vUser, 0, 0, canvas.width, canvas.height);
-
-                // 2. 画顶层 (模板视频) - 模拟 Screen 模式
+                ctx.drawImage(vU, 0, 0, cvs.width, cvs.height);
+                
                 ctx.globalCompositeOperation = 'screen';
-                // 这里的 1.25 是为了挤掉你说的模板边缘黑影
-                const scale = 1.25;
-                const sw = canvas.width * scale;
-                const sh = canvas.height * scale;
-                ctx.drawImage(vMask, (canvas.width - sw)/2, (canvas.height - sh)/2, sw, sh);
+                const s = 1.3; // 暴力放大 1.3 倍，确保边缘黑影出局
+                ctx.drawImage(vM, (cvs.width - cvs.width*s)/2, (cvs.height - cvs.height*s)/2, cvs.width*s, cvs.height*s);
 
-                requestAnimationFrame(drawFrame);
+                requestAnimationFrame(draw);
             }
-            drawFrame();
+            draw();
         }
 
-        // 九宫格切割 (保留)
+        // 九宫格逻辑保留...
         document.getElementById('imageInput').onchange = function(e) {
-            const file = e.target.files[0]; if (!file) return;
+            const file = e.target.files[0];
             const reader = new FileReader();
             reader.onload = function(ev) {
                 const img = new Image();
@@ -182,7 +182,7 @@
                         const ct = c.getContext('2d');
                         ct.drawImage(img, (i % 3) * size + (img.width - size * 3) / 2, Math.floor(i / 3) * size + (img.height - size * 3) / 2, size, size, 0, 0, 800, 800);
                         const data = c.toDataURL("image/jpeg");
-                        grid.innerHTML += `<div class="img-unit"><img src="${data}"><a href="${data}" download="cut_${i+1}.jpg" class="dl-btn">保存</a></div>`;
+                        grid.innerHTML += `<div class="img-unit"><img src="${data}"></div>`;
                     }
                 };
                 img.src = ev.target.result;
