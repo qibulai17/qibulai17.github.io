@@ -2,22 +2,50 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>朋友圈全能切割神器 - By qibulai17</title>
     <style>
         :root { --primary: #07c160; --bg: #f8f9fa; }
-        body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 20px; text-align: center; }
-        .card { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
-        h1 { color: #333; margin-bottom: 10px; }
-        .subtitle { color: #888; margin-bottom: 30px; }
-        .controls { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
-        select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-        .upload-btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; }
-        #grid-container { display: grid; gap: 10px; margin-top: 20px; justify-content: center; }
-        .grid-3 { grid-template-columns: repeat(3, 1fr); max-width: 500px; margin-left: auto; margin-right: auto; }
-        canvas { width: 100%; border-radius: 4px; border: 1px solid #eee; transition: transform 0.2s; }
-        canvas:hover { transform: scale(1.05); }
-        .watermark-info { color: #ff5000; font-size: 0.85em; margin-top: 10px; }
-        .footer { margin-top: 40px; border-top: 1px dotted #ccc; padding-top: 20px; color: #999; }
+        body { font-family: 'Microsoft YaHei', sans-serif; background: var(--bg); margin: 0; padding: 15px; text-align: center; }
+        .card { max-width: 800px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+        h1 { color: #333; margin-bottom: 10px; font-size: 1.5em; }
+        .subtitle { color: #888; margin-bottom: 25px; }
+        .controls { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        select, input[type="text"] { padding: 10px; border-radius: 8px; border: 1px solid #ddd; outline: none; }
+        .upload-btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin-bottom: 10px; }
+        
+        /* 网格容器 */
+        #grid-container { 
+            display: grid; 
+            gap: 12px; 
+            margin-top: 20px; 
+            justify-content: center; 
+        }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); max-width: 500px; margin: 0 auto; }
+        
+        /* 每一个切图单元 */
+        .img-unit { display: flex; flex-direction: column; align-items: center; }
+        .img-unit img { 
+            width: 100%; 
+            border-radius: 8px; 
+            border: 1px solid #eee; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+        
+        /* 下载小按钮 */
+        .dl-btn { 
+            margin-top: 8px;
+            padding: 4px 10px;
+            font-size: 12px;
+            background: #f0f0f0;
+            color: #666;
+            border-radius: 4px;
+            text-decoration: none;
+            border: 1px solid #ddd;
+        }
+
+        .watermark-info { color: #ff5000; font-size: 0.85em; margin-top: 15px; font-weight: bold; }
+        .footer { margin-top: 40px; border-top: 1px dotted #ccc; padding-top: 20px; color: #999; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -30,19 +58,19 @@
                 <option value="9">九宫格 (3x3)</option>
                 <option value="3">三联画 (1x3)</option>
             </select>
-            <input type="text" id="watermarkText" placeholder="输入你的个性水印" value="@qibulai17">
+            <input type="text" id="watermarkText" placeholder="输入个性水印" value="@qibulai17">
         </div>
 
         <label class="upload-btn">
-            上传图片开始变酷
+            选择照片
             <input type="file" id="imageInput" accept="image/*" style="display:none">
         </label>
 
-        <p class="watermark-info">✨ 提示：点击生成的图片可单独保存</p>
+        <p class="watermark-info">✨ 手机用户：长按图片即可保存到相册</p>
         <div id="grid-container" class="grid-3"></div>
 
         <div class="footer">
-            <p>🚀 由 qibulai17 开发 | 觉得好用请分享给同学</p>
+            <p>🚀 由 qibulai17 开发 | 你的私人切图专家</p>
         </div>
     </div>
 
@@ -85,17 +113,38 @@
                     canvas.width = cellWidth;
                     canvas.height = cellHeight;
 
-                    // 画图
+                    // 绘制图像
                     ctx.drawImage(img, c * cellWidth, r * cellHeight, cellWidth, cellHeight, 0, 0, cellWidth, cellHeight);
 
-                    // 加水印
+                    // 绘制水印
                     if (watermark) {
-                        ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-                        ctx.font = `${cellWidth / 15}px Arial`;
-                        ctx.fillText(watermark, 10, cellHeight - 10);
+                        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                        const fontSize = cellWidth / 12;
+                        ctx.font = `bold ${fontSize}px Arial`;
+                        // 稍微给点阴影让水印更清晰
+                        ctx.shadowColor = "rgba(0,0,0,0.5)";
+                        ctx.shadowBlur = 4;
+                        ctx.fillText(watermark, 15, cellHeight - 15);
                     }
 
-                    gridContainer.appendChild(canvas);
+                    // 关键点：将 Canvas 转换为真正的图片标签 <img>
+                    const dataUrl = canvas.toDataURL("image/jpeg", 0.9);
+                    
+                    const unit = document.createElement('div');
+                    unit.className = 'img-unit';
+                    
+                    const newImg = document.createElement('img');
+                    newImg.src = dataUrl;
+                    
+                    const dlBtn = document.createElement('a');
+                    dlBtn.href = dataUrl;
+                    dlBtn.download = `cut_${r}_${c}.jpg`;
+                    dlBtn.className = 'dl-btn';
+                    dlBtn.innerText = '保存';
+
+                    unit.appendChild(newImg);
+                    unit.appendChild(dlBtn);
+                    gridContainer.appendChild(unit);
                 }
             }
         }
