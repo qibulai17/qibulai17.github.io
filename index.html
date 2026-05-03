@@ -3,94 +3,116 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3x3 视频特效生成器</title>
+    <title>3x3 矩阵特效还原版</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; background: #f0f0f0; margin: 0; padding: 20px; }
-        .container { position: relative; width: 360px; height: 640px; background: #000; overflow: hidden; }
-        canvas { width: 100%; height: 100%; object-fit: contain; } /* 保持原比例，不拉伸 */
-        #maskVideo { display: none; }
-        
-        .controls { width: 360px; margin-top: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .progress-box { background: #fff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        input[type="range"] { width: 100%; height: 8px; border-radius: 5px; background: #ddd; accent-color: #fb7299; }
-        button { padding: 15px; background: #fb7299; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:active { opacity: 0.8; }
-        .time-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px; color: #666; }
+        body { margin: 0; background: #1a1a1a; color: white; display: flex; flex-direction: column; align-items: center; font-family: sans-serif; }
+        .canvas-container { width: 360px; height: 640px; margin-top: 20px; position: relative; background: #000; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        canvas { width: 100%; height: 100%; }
+        .controls { width: 360px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; gap: 15px; }
+        .file-input-group { display: flex; flex-direction: column; gap: 8px; background: #333; padding: 10px; border-radius: 8px; }
+        input[type="range"] { width: 100%; accent-color: #fb7299; }
+        button { padding: 15px; background: #fb7299; border: none; border-radius: 8px; color: white; font-weight: bold; font-size: 16px; cursor: pointer; }
+        button:disabled { background: #666; }
+        label { font-size: 14px; color: #aaa; }
     </style>
 </head>
 <body>
 
-    <div class="container">
+    <div class="canvas-container">
         <canvas id="mainCanvas"></canvas>
     </div>
 
-    <video id="maskVideo" src="mask.mp4" muted playsinline crossorigin="anonymous"></video>
+    <!-- 隐藏的资源 -->
+    <video id="maskVideo" src="mask.mp4" muted playsinline style="display:none;"></video>
+    <video id="sourceVideo" muted playsinline style="display:none;"></video>
 
     <div class="controls">
-        <div class="progress-box">
-            <div class="time-label">
-                <span>预览时间进度</span>
-                <span><b id="timeVal">0.0</b> / 5.0s</span>
-            </div>
+        <div class="file-input-group">
+            <label>1. 导入你的原视频 (要被特效处理的那个)</label>
+            <input type="file" id="uploadSource" accept="video/*">
+        </div>
+
+        <div class="file-input-group">
+            <label>2. 预览 5 秒特效进度</label>
             <input type="range" id="previewBar" min="0" max="5" step="0.1" value="0">
+            <div style="display:flex; justify-content: space-between; font-size: 12px;">
+                <span>0.0s</span>
+                <span id="timeVal">0.0s</span>
+                <span>5.0s</span>
+            </div>
         </div>
         
-        <button id="recordBtn">导出 5 秒合成视频</button>
+        <button id="exportBtn">生成并下载 5 秒视频</button>
     </div>
 
     <script>
         const canvas = document.getElementById('mainCanvas');
         const ctx = canvas.getContext('2d');
         const maskVideo = document.getElementById('maskVideo');
+        const sourceVideo = document.getElementById('sourceVideo');
+        const uploadSource = document.getElementById('uploadSource');
         const previewBar = document.getElementById('previewBar');
         const timeVal = document.getElementById('timeVal');
-        const recordBtn = document.getElementById('recordBtn');
+        const exportBtn = document.getElementById('exportBtn');
 
-        // 设置高清画布比例
         canvas.width = 720;
         canvas.height = 1280;
 
-        // 这里是你之前的 3x3 核心特效逻辑
-        function drawFrame() {
+        // 导入原视频
+        uploadSource.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                sourceVideo.src = URL.createObjectURL(file);
+                sourceVideo.load();
+            }
+        };
+
+        // 核心渲染逻辑：还原 3x3 切割
+        function render() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            // 1. 先画底层黑色（或者你的原视频底层）
+            // 如果没传原视频，先画个黑色背景占位
             ctx.fillStyle = "black";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // 2. 绘制遮罩视频（关键：保持 contain 比例，不拉伸）
-            const vWidth = maskVideo.videoWidth;
-            const vHeight = maskVideo.videoHeight;
-            const ratio = Math.min(canvas.width / vWidth, canvas.height / vHeight);
-            const newWidth = vWidth * ratio;
-            const newHeight = vHeight * ratio;
-            const offX = (canvas.width - newWidth) / 2;
-            const offY = (canvas.height - newHeight) / 2;
+            if (sourceVideo.readyState >= 2) {
+                // 绘制底层原视频
+                ctx.drawImage(sourceVideo, 0, 0, canvas.width, canvas.height);
+            }
 
-            ctx.drawImage(maskVideo, offX, offY, newWidth, newHeight);
-
-            // 3. 这里会自动应用你 mask.mp4 里的黑白擦除逻辑
-            // 如果你的代码之前有特殊的 globalCompositeOperation，请告诉我
+            // 关键：应用蒙版特效
+            ctx.globalCompositeOperation = 'destination-out'; 
+            
+            // 绘制你的 mask.mp4（这里会保留你 3x3 里的原始比例）
+            // 如果你的 mask.mp4 已经是 3x3 的，它会直接作用于整个画面
+            ctx.drawImage(maskVideo, 0, 0, canvas.width, canvas.height);
+            
+            ctx.globalCompositeOperation = 'source-over';
         }
 
-        // B站同款进度条：手动预览 5 秒内的每一帧
-        previewBar.addEventListener('input', () => {
+        // 预览控制
+        previewBar.oninput = () => {
             const t = parseFloat(previewBar.value);
             maskVideo.currentTime = t;
-            timeVal.innerText = t.toFixed(1);
-        });
-
-        maskVideo.onseeked = drawFrame;
-        maskVideo.onloadedmetadata = () => {
-            previewBar.max = 5; // 强制预览上限为 5 秒
-            drawFrame();
+            // 让原视频也跟着预览走
+            if (sourceVideo.duration) {
+                sourceVideo.currentTime = t % sourceVideo.duration;
+            }
+            timeVal.innerText = t.toFixed(1) + 's';
         };
 
-        // 导出逻辑：严格录制 0-5 秒
-        recordBtn.onclick = async () => {
-            recordBtn.disabled = true;
-            recordBtn.innerText = "录制中 (0-5秒)...";
-            
+        maskVideo.onseeked = render;
+        sourceVideo.onseeked = render;
+
+        // 导出逻辑
+        exportBtn.onclick = async () => {
+            if (!sourceVideo.src) {
+                alert("请先导入你的原视频！");
+                return;
+            }
+            exportBtn.disabled = true;
+            exportBtn.innerText = "正在导出 5 秒视频...";
+
             const chunks = [];
             const stream = canvas.captureStream(30);
             const recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
@@ -98,23 +120,25 @@
             recorder.ondataavailable = e => chunks.push(e.data);
             recorder.onstop = () => {
                 const blob = new Blob(chunks, { type: 'video/mp4' });
-                const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
-                a.href = url;
-                a.download = "final_effect_5s.mp4";
+                a.href = URL.createObjectURL(blob);
+                a.download = "3x3_Effect_Result.mp4";
                 a.click();
-                recordBtn.disabled = false;
-                recordBtn.innerText = "导出 5 秒合成视频";
+                exportBtn.disabled = false;
+                exportBtn.innerText = "生成并下载 5 秒视频";
             };
 
             maskVideo.currentTime = 0;
-            await maskVideo.play();
+            sourceVideo.currentTime = 0;
+            
             recorder.start();
+            maskVideo.play();
+            sourceVideo.play();
 
-            // 计时器：5秒后准时停止
             setTimeout(() => {
                 recorder.stop();
                 maskVideo.pause();
+                sourceVideo.pause();
             }, 5000);
         };
     </script>
