@@ -1,70 +1,151 @@
-<!-- 在 script 里的 render 函数部分，我做了强制同步修改 -->
-<script>
-    // ... 前面的代码保持一致 ...
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朋友圈全能工具箱</title>
+    <style>
+        :root { --primary: #07c160; --bg: #f0f2f5; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .card { max-width: 500px; margin: auto; background: white; padding: 25px; border-radius: 24px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
+        .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #eee; border-radius: 12px; font-weight: bold; font-size: 14px; color: #555; cursor: pointer; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .btn { background: var(--primary); color: white; padding: 14px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; width: 100%; font-size: 16px; margin-top: 15px; }
+        .btn:disabled { background: #ccc; }
+        .video-box { width: 100%; background: #000; border-radius: 12px; overflow: hidden; margin-top: 15px; }
+        video { width: 100%; display: block; }
+        .control-box { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-top: 15px; border: 1px solid #eee; }
+        input[type=range] { width: 100%; accent-color: var(--primary); }
+        #status-txt { text-align: center; font-size: 13px; color: #666; margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2 style="text-align:center; margin-top:0;">🛠️ 朋友圈全能工具箱</h2>
+        <div class="tabs">
+            <button class="tab-btn active">视频擦除特效</button>
+            <button class="tab-btn" onclick="location.reload()">清空重置</button>
+        </div>
 
-    async function processVideo() {
-        gBtn.disabled = true;
-        statusTxt.innerText = "🚀 正在进行深度兼容性合成，请稍候...";
-        
-        cvs.width = vPreview.videoWidth;
-        cvs.height = vPreview.videoHeight;
+        <div id="tab-video">
+            <input type="file" id="vidInput" accept="video/*" style="display:none">
+            <button class="btn" style="background:#333;" onclick="document.getElementById('vidInput').click()">📂 1. 上传原视频</button>
 
-        // 强制使用最通用的 mimeType
-        const mime = 'video/webm;codecs=vp8'; 
-        const stream = cvs.captureStream(30);
-        const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 });
-        const chunks = [];
+            <div class="video-box" id="p-box" style="display:none;">
+                <video id="v-preview" muted playsinline></video>
+            </div>
+            
+            <div class="video-box" id="r-box" style="display:none; border: 3px solid #07c160;">
+                <video id="v-final" controls playsinline></video>
+            </div>
 
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-        recorder.onstop = () => {
-            const blob = new Blob(chunks, { type: mime });
-            vFinal.src = URL.createObjectURL(blob);
-            document.getElementById('preview-container').style.display = 'none';
-            document.getElementById('result-container').style.display = 'block';
-            statusTxt.innerText = "✅ 合成成功！若预览无特效，请直接下载到相册查看。";
-            dBtn.style.display = 'block';
+            <div class="control-box" id="v-ctrl" style="display:none;">
+                <div style="font-size:14px; font-weight:bold;" id="time-label">🎬 选择起点 (生成5秒): 0.0s</div>
+                <input type="range" id="trimRange" min="0" value="0" step="0.1">
+            </div>
+
+            <p id="status-txt"></p>
+            <button class="btn" id="gen-btn" onclick="processVideo()" style="display:none;">✨ 2. 开始合成特效</button>
+            <button class="btn" id="download-btn" style="display:none; background:#1485ee;">⬇️ 3. 保存视频</button>
+        </div>
+    </div>
+
+    <video id="v-mask" src="./mask.mp4" style="display:none" muted playsinline loop crossorigin="anonymous"></video>
+    <canvas id="hidden-cvs" style="display:none"></canvas>
+
+    <script>
+        const vPreview = document.getElementById('v-preview');
+        const vFinal = document.getElementById('v-final');
+        const vMask = document.getElementById('v-mask');
+        const cvs = document.getElementById('hidden-cvs');
+        const ctx = cvs.getContext('2d');
+        const trimRange = document.getElementById('trimRange');
+        const gBtn = document.getElementById('gen-btn');
+        const dBtn = document.getElementById('download-btn');
+        const statusTxt = document.getElementById('status-txt');
+
+        document.getElementById('vidInput').onchange = (e) => {
+            const file = e.target.files[0];
+            if(!file) return;
+            vPreview.src = URL.createObjectURL(file);
+            vMask.load(); 
+            document.getElementById('p-box').style.display = 'block';
+            document.getElementById('v-ctrl').style.display = 'block';
+            gBtn.style.display = 'block';
+            vPreview.onloadedmetadata = () => {
+                trimRange.max = Math.max(0, vPreview.duration - 5.1).toFixed(1);
+            };
         };
 
-        const startPoint = parseFloat(trimRange.value);
-        vPreview.currentTime = startPoint;
-        vMask.currentTime = 0;
-        
-        // 关键：等待视频跳转到指定位置再开始
-        await new Promise(r => vPreview.onseeked = r);
+        trimRange.oninput = () => {
+            vPreview.currentTime = parseFloat(trimRange.value);
+            document.getElementById('time-label').innerText = `🎬 选择起点 (生成5秒): ${vPreview.currentTime.toFixed(1)}s`;
+        };
 
-        recorder.start();
-        vPreview.play();
-        vMask.play();
-
-        const fps = 30;
-        const interval = 1000 / fps;
-        let lastDraw = 0;
-
-        function render(now) {
-            const elapsed = vPreview.currentTime - startPoint;
+        async function processVideo() {
+            gBtn.disabled = true;
+            statusTxt.innerText = "⏳ 正在努力合成中，请稍后...";
             
-            if (elapsed >= 5 || vPreview.ended) {
-                recorder.stop();
-                vPreview.pause();
-                vMask.pause();
-                return;
+            cvs.width = vPreview.videoWidth;
+            cvs.height = vPreview.videoHeight;
+
+            let type = 'video/webm;codecs=vp8';
+            if (!MediaRecorder.isTypeSupported(type)) type = 'video/mp4';
+            
+            const stream = cvs.captureStream(30);
+            const recorder = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 10000000 });
+            const chunks = [];
+
+            recorder.ondataavailable = (e) => chunks.push(e.data);
+            recorder.onstop = () => {
+                const blob = new Blob(chunks, { type: type });
+                vFinal.src = URL.createObjectURL(blob);
+                document.getElementById('p-box').style.display = 'none';
+                document.getElementById('r-box').style.display = 'block';
+                statusTxt.innerText = "✅ 合成完毕！";
+                dBtn.style.display = 'block';
+                dBtn.onclick = () => {
+                    const a = document.createElement('a');
+                    a.href = vFinal.src;
+                    a.download = 'wechat_video.mp4';
+                    a.click();
+                };
+            };
+
+            const startPoint = parseFloat(trimRange.value);
+            vPreview.currentTime = startPoint;
+            vMask.currentTime = 0;
+            
+            try {
+                await vPreview.play();
+                await vMask.play();
+                recorder.start();
+                render();
+            } catch (err) {
+                statusTxt.innerText = "❌ 启动失败，请刷新重试";
+                gBtn.disabled = false;
             }
 
-            // 强制每一帧都重新计算蒙版位置
-            if (vMask.currentTime > 3.8) vMask.currentTime = 0;
+            function render() {
+                const elapsed = vPreview.currentTime - startPoint;
+                if (elapsed >= 5 || vPreview.ended) {
+                    recorder.stop();
+                    vPreview.pause();
+                    vMask.pause();
+                    return;
+                }
+                if (vMask.currentTime > 3.8) vMask.currentTime = 0;
 
-            // 只有时间流逝了才画下一帧，防止重复帧导致文件过大或卡死
-            if (now - lastDraw >= interval) {
                 ctx.clearRect(0, 0, cvs.width, cvs.height);
                 ctx.globalCompositeOperation = 'source-over';
                 ctx.drawImage(vPreview, 0, 0, cvs.width, cvs.height);
                 ctx.globalCompositeOperation = 'screen';
                 ctx.drawImage(vMask, 0, 0, cvs.width, cvs.height);
-                lastDraw = now;
+                
+                requestAnimationFrame(render);
             }
-            
-            requestAnimationFrame(render);
         }
-        requestAnimationFrame(render);
-    }
-</script>
+    </script>
+</body>
+</html>
