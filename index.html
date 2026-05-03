@@ -15,18 +15,18 @@
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* 视频剪辑区专用样式 */
+        /* 视频剪辑区新样式 */
+        .video-upload-wrapper { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
         #video-work-area { position: relative; width: 100%; max-width: 350px; margin: 20px auto; overflow: hidden; background: #000; border-radius: 10px; line-height: 0; }
         #moments-mask { position: absolute; top: 0; left: 0; width: 100%; z-index: 10; pointer-events: none; }
         #user-video { width: 100%; z-index: 5; }
-        /* 擦除动画层 */
         #erase-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 8; transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
         .erased { transform: translateX(100%); }
 
         .upload-btn { background: var(--primary); color: white; padding: 12px 30px; border-radius: 50px; cursor: pointer; display: inline-block; font-weight: bold; margin: 10px 0; }
-        .action-btn { background: #333; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; border: none; margin-top: 10px; }
+        .action-btn { background: #333; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; border: none; width: 220px; display: inline-block; }
         
-        /* 原有切图样式保留... */
+        /* 原有切图样式 */
         #grid-container { display: grid; gap: 6px; margin-top: 10px; background: #ededed; padding: 10px; border-radius: 12px; }
         .grid-3 { grid-template-columns: repeat(3, 1fr); }
         .img-unit { position: relative; background: white; }
@@ -48,10 +48,12 @@
         </div>
 
         <div id="tab-video" class="content-section">
-            <p style="font-size: 0.8em; color: #888;">1. 上传朋友圈截图 -> 2. 上传短视频 -> 3. 生成擦开特效</p>
+            <p style="font-size: 0.8em; color: #888;">请按顺序上传文件</p>
             
-            <label class="action-btn">步骤1：上传朋友圈截图<input type="file" id="maskInput" accept="image/*" style="display:none"></label><br>
-            <label class="action-btn" style="background:#576b95">步骤2：上传背景视频<input type="file" id="videoInput" accept="video/*" style="display:none"></label>
+            <div class="video-upload-wrapper">
+                <label class="action-btn">步骤1：上传朋友圈截图<input type="file" id="maskInput" accept="image/*" style="display:none"></label>
+                <label class="action-btn" style="background:#576b95">步骤2：上传背景视频<input type="file" id="videoInput" accept="video/*" style="display:none"></label>
+            </div>
             
             <div id="video-work-area">
                 <img id="moments-mask" src="" alt="">
@@ -60,12 +62,9 @@
             </div>
 
             <button class="upload-btn" onclick="startErase()">✨ 预览擦开特效</button>
-            <p style="font-size: 0.7em; color: #ff5000;">提示：预览时使用手机录屏即可导出视频</p>
         </div>
 
-        <div class="footer">
-            <p>🚀 By qibulai17 | 你的全能剪辑助手</p>
-        </div>
+        <div class="footer" style="margin-top:40px; color:#bbb; font-size:0.8em;">🚀 By qibulai17</div>
     </div>
 
     <script>
@@ -76,7 +75,6 @@
             event.currentTarget.classList.add('active');
         }
 
-        // --- 视频剪辑逻辑 ---
         const maskInput = document.getElementById('maskInput');
         const videoInput = document.getElementById('videoInput');
         const momentsMask = document.getElementById('moments-mask');
@@ -84,14 +82,12 @@
         const eraseLayer = document.getElementById('erase-layer');
 
         maskInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) momentsMask.src = URL.createObjectURL(file);
+            if(e.target.files[0]) momentsMask.src = URL.createObjectURL(e.target.files[0]);
         });
 
         videoInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                userVideo.src = URL.createObjectURL(file);
+            if(e.target.files[0]) {
+                userVideo.src = URL.createObjectURL(e.target.files[0]);
                 userVideo.play();
                 eraseLayer.classList.remove('erased');
             }
@@ -101,17 +97,14 @@
             eraseLayer.classList.remove('erased');
             userVideo.currentTime = 0;
             userVideo.play();
-            setTimeout(() => {
-                eraseLayer.classList.add('erased');
-            }, 500);
+            setTimeout(() => { eraseLayer.classList.add('erased'); }, 500);
         }
 
-        // --- 原有切图逻辑保留 ---
+        // --- 切图逻辑 ---
         const imageInput = document.getElementById('imageInput');
         const gridContainer = document.getElementById('grid-container');
         imageInput.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+            if(!e.target.files[0]) return;
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
@@ -123,12 +116,9 @@
                         canvas.width = canvas.height = size;
                         const ctx = canvas.getContext('2d');
                         ctx.drawImage(img, (i%3)*size, Math.floor(i/3)*size, size, size, 0, 0, size, size);
-                        const unit = document.createElement('div');
-                        unit.className = 'img-unit';
-                        const nImg = document.createElement('img');
-                        nImg.src = canvas.toDataURL("image/jpeg");
-                        const btn = document.createElement('a');
-                        btn.href = nImg.src; btn.download = `cut_${i}.jpg`;
+                        const unit = document.createElement('div'); unit.className = 'img-unit';
+                        const nImg = document.createElement('img'); nImg.src = canvas.toDataURL("image/jpeg");
+                        const btn = document.createElement('a'); btn.href = nImg.src; btn.download = `cut_${i}.jpg`;
                         btn.className = 'dl-btn'; btn.innerText = '保存';
                         unit.appendChild(nImg); unit.appendChild(btn);
                         gridContainer.appendChild(unit);
