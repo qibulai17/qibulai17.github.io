@@ -10,24 +10,55 @@
         .card { max-width: 500px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
         
         .tabs { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
-        .tab-btn { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-size: 14px; }
+        .tab-btn { flex: 1; padding: 10px; border: none; background: #eee; border-radius: 8px; cursor: pointer; font-size: 14px; color: #666; }
         .tab-btn.active { background: var(--primary); color: white; }
         .content-section { display: none; }
         .content-section.active { display: block; }
 
-        /* 视频区样式 */
-        .v-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-        #video-stage { position: relative; width: 100%; max-width: 320px; margin: 15px auto; background: #000; border-radius: 8px; overflow: hidden; min-height: 200px; }
-        #moments-mask { position: absolute; top: 0; left: 0; width: 100%; z-index: 10; pointer-events: none; }
-        #user-video { width: 100%; display: block; }
-        #erase-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 8; transition: transform 1.2s ease-in-out; }
-        .erased { transform: translateX(100%); }
+        /* 视频预览区核心逻辑 */
+        #video-stage { 
+            position: relative; 
+            width: 100%; 
+            max-width: 320px; 
+            aspect-ratio: 9 / 16; /* 模拟手机屏幕比例 */
+            margin: 15px auto; 
+            background: #000; 
+            border-radius: 12px; 
+            overflow: hidden; 
+        }
+        
+        /* 视频放在最底层 */
+        #user-video { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            z-index: 1; 
+        }
 
-        /* 按钮样式 */
-        .btn { background: var(--primary); color: white; padding: 10px 20px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; margin: 5px; }
-        .btn-sub { background: #576b95; font-size: 13px; padding: 8px 15px; }
+        /* 朋友圈截图放在顶层，负责执行擦除动画 */
+        #moments-mask { 
+            position: absolute; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            object-fit: contain; 
+            background: white;
+            z-index: 10; 
+            transition: transform 1.2s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.8s;
+            transform-origin: left;
+        }
 
-        /* 切图区样式 */
+        /* 动画触发样式：向右滑开并淡出 */
+        .mask-erased { 
+            transform: scaleX(1.5) translateX(100%); 
+            opacity: 0;
+        }
+
+        .btn { background: var(--primary); color: white; padding: 12px 24px; border-radius: 50px; border: none; cursor: pointer; font-weight: bold; margin: 10px 5px; transition: 0.2s; }
+        .btn:active { transform: scale(0.95); }
+        .btn-sub { background: #576b95; font-size: 13px; padding: 8px 15px; width: 80%; }
+
         #grid-container { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; margin-top: 15px; background: #eee; padding: 5px; }
         .img-unit { position: relative; }
         .img-unit img { width: 100%; display: block; }
@@ -39,29 +70,31 @@
         <h3>📸 朋友圈全能工具箱</h3>
         <div class="tabs">
             <button class="tab-btn active" id="btn-cut" onclick="showTab('cut')">九宫格切割</button>
-            <button class="tab-btn" id="btn-video" onclick="showTab('video')">视频擦开特效</button>
+            <button class="tab-btn" id="btn-video" onclick="showTab('video')">视频擦开神器</button>
         </div>
 
         <div id="tab-cut" class="content-section active">
             <input type="file" id="imageInput" accept="image/*" style="display:none">
-            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片</button>
+            <button class="btn" onclick="document.getElementById('imageInput').click()">选择照片开始切割</button>
             <div id="grid-container"></div>
         </div>
 
         <div id="tab-video" class="content-section">
-            <div class="v-box">
+            <div style="display:flex; flex-direction:column; align-items:center; gap:8px;">
                 <input type="file" id="maskInput" accept="image/*" style="display:none">
-                <button class="btn btn-sub" onclick="document.getElementById('maskInput').click()">1. 上传朋友圈截图</button>
+                <button class="btn btn-sub" onclick="document.getElementById('maskInput').click()">步骤1：上传朋友圈截图</button>
+                
                 <input type="file" id="videoInput" accept="video/*" style="display:none">
-                <button class="btn btn-sub" style="background:#333" onclick="document.getElementById('videoInput').click()">2. 上传背景视频</button>
+                <button class="btn btn-sub" style="background:#333" onclick="document.getElementById('videoInput').click()">步骤2：上传背景短视频</button>
             </div>
             
             <div id="video-stage">
-                <img id="moments-mask">
-                <div id="erase-layer"></div>
+                <img id="moments-mask" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7">
                 <video id="user-video" loop muted playsinline></video>
             </div>
-            <button class="btn" onclick="runErase()">✨ 预览擦开特效</button>
+            
+            <button class="btn" style="width:100%;" onclick="runErase()">✨ 预览擦开效果</button>
+            <p style="color:#999; font-size:12px;">预览时使用手机录屏即可导出视频</p>
         </div>
     </div>
 
@@ -73,7 +106,7 @@
             document.getElementById('btn-' + id).classList.add('active');
         }
 
-        // --- 九宫格逻辑修复 ---
+        // --- 九宫格切割代码（修复变量引用错误） ---
         document.getElementById('imageInput').onchange = function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -84,13 +117,18 @@
                     const grid = document.getElementById('grid-container');
                     grid.innerHTML = '';
                     const size = Math.min(img.width/3, img.height/3);
+                    const startX = (img.width - size*3)/2;
+                    const startY = (img.height - size*3)/2;
                     for(let i=0; i<9; i++) {
                         const canvas = document.createElement('canvas');
-                        canvas.width = canvas.height = size;
+                        canvas.width = canvas.height = 1000; // 统一高质量
                         const ctx = canvas.getContext('2d');
-                        ctx.drawImage(img, (i%3)*size, Math.floor(i/3)*size, size, size, 0, 0, size, size);
-                        const data = canvas.toDataURL("image/jpeg");
-                        grid.innerHTML += `<div class="img-unit"><img src="${data}"><a href="${data}" download="cut_${i}.jpg" class="dl">保存</a></div>`;
+                        ctx.drawImage(img, startX + (i%3)*size, startY + Math.floor(i/3)*size, size, size, 0, 0, 1000, 1000);
+                        const data = canvas.toDataURL("image/jpeg", 0.9);
+                        const unit = document.createElement('div');
+                        unit.className = 'img-unit';
+                        unit.innerHTML = `<img src="${data}"><a href="${data}" download="cut_${i}.jpg" class="dl">保存</a>`;
+                        grid.appendChild(unit);
                     }
                 };
                 img.src = ev.target.result;
@@ -98,27 +136,35 @@
             reader.readAsDataURL(file);
         };
 
-        // --- 视频逻辑修复 ---
+        // --- 视频擦开代码 ---
+        const maskImg = document.getElementById('moments-mask');
+        const v = document.getElementById('user-video');
+
         document.getElementById('maskInput').onchange = function(e) {
-            if(e.target.files[0]) document.getElementById('moments-mask').src = URL.createObjectURL(e.target.files[0]);
+            if(e.target.files[0]) {
+                maskImg.src = URL.createObjectURL(e.target.files[0]);
+                maskImg.classList.remove('mask-erased'); // 上传新图时重置状态
+            }
         };
 
         document.getElementById('videoInput').onchange = function(e) {
-            const v = document.getElementById('user-video');
             if(e.target.files[0]) {
                 v.src = URL.createObjectURL(e.target.files[0]);
                 v.onloadedmetadata = () => v.play();
-                document.getElementById('erase-layer').classList.remove('erased');
+                maskImg.classList.remove('mask-erased');
             }
         };
 
         function runErase() {
-            const layer = document.getElementById('erase-layer');
-            const v = document.getElementById('user-video');
-            layer.classList.remove('erased');
+            // 先重置
+            maskImg.classList.remove('mask-erased');
             v.currentTime = 0;
             v.play();
-            setTimeout(() => layer.classList.add('erased'), 300);
+            
+            // 强制浏览器重绘后再执行动画
+            setTimeout(() => {
+                maskImg.classList.add('mask-erased');
+            }, 100);
         }
     </script>
 </body>
